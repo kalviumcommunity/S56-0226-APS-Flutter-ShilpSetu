@@ -1,10 +1,10 @@
-# ShilpSetu
+# 🎨 ShilpSetu
 
-A Vocal-for-Local Digital Storefront for Artisans
+A Vocal-for-Local Digital Storefront for Artisans 🛍️✨
 
 ---
 
-## Overview
+## 📖 Overview
 
 **ShilpSetu** is a mobile-first application designed to empower local artisans and craftsmen by providing a simple and accessible digital storefront. The app enables artisans to showcase handmade products, manage orders, and connect directly with buyers while preserving craft identity, regional origin, and cultural value.
 
@@ -12,37 +12,37 @@ Unlike generic e-commerce platforms, ShilpSetu emphasizes community-driven comme
 
 ---
 
-## Problem Statement
+## ⚠️ Problem Statement
 
 Local artisans face significant challenges in adopting digital platforms. They often lack an easy way to display their creations online, manage orders efficiently, or reach buyers beyond physical markets and exhibitions. Existing e-commerce solutions are complex, commission-heavy, and fail to reflect the cultural and local identity of handmade crafts.
 
 ---
 
-## Solution
+## 💡 Solution
 
 ShilpSetu provides a lightweight, mobile-first digital storefront that allows artisans to create personalized stores, list products with craft stories and origin details, manage carts and orders, and interact directly with buyers. The platform bridges the gap between traditional craftsmanship and modern digital commerce while supporting the “Vocal for Local” initiative.
 
 ---
 
-## Target Users
+## 👥 Target Users
 
-* Local artisans and craftsmen
-* Small-scale handmade product sellers
-* Self-help groups (SHGs) and NGOs supporting artisans
-* Buyers seeking authentic local and handmade products
+* 🎭 Local artisans and craftsmen
+* 🏺 Small-scale handmade product sellers
+* 🤝 Self-help groups (SHGs) and NGOs supporting artisans
+* 🛒 Buyers seeking authentic local and handmade products
 
 ---
 
-## Key Features
+## ✨ Key Features
 
-### Artisan Features
+### 👨‍🎨 Artisan Features
 
 * Create and manage a personal storefront
 * Upload products with images, pricing, and craft details
 * Highlight product origin and artisan story
 * Manage orders and quantities through a simple dashboard
 
-### Buyer Features
+### 🛍️ Buyer Features
 
 * Browse artisan storefronts
 * View product details with craft and locality information
@@ -51,9 +51,9 @@ ShilpSetu provides a lightweight, mobile-first digital storefront that allows ar
 
 ---
 
-## MVP Scope
+## 🎯 MVP Scope
 
-### Included in Phase 1
+### ✅ Included in Phase 1
 
 * Firebase Authentication
 * Artisan and buyer roles
@@ -63,7 +63,7 @@ ShilpSetu provides a lightweight, mobile-first digital storefront that allows ar
 * Cloud Firestore real-time database
 * Firebase Storage for image uploads
 
-### Planned for Phase 2
+### 🚀 Planned for Phase 2
 
 * Online payment integration
 * Multi-language support
@@ -73,21 +73,21 @@ ShilpSetu provides a lightweight, mobile-first digital storefront that allows ar
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-### Frontend
+### 📱 Frontend
 
 * Flutter
 * Dart
 * Provider (state management)
 
-### Backend (BaaS)
+### ☁️ Backend (BaaS)
 
 * Firebase Authentication
 * Cloud Firestore
 * Firebase Storage
 
-### Tools and Platforms
+### 🔧 Tools and Platforms
 
 * Android Studio or Visual Studio Code
 * Git and GitHub
@@ -95,7 +95,7 @@ ShilpSetu provides a lightweight, mobile-first digital storefront that allows ar
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```plaintext
 lib/
@@ -131,9 +131,9 @@ lib/
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
-### Prerequisites
+### 📋 Prerequisites
 
 * Flutter SDK installed
 * Android Studio or Visual Studio Code
@@ -148,7 +148,7 @@ flutter doctor
 
 ---
 
-## Setup Instructions
+## ⚙️ Setup Instructions
 
 ### Step 1: Clone the Repository
 
@@ -178,21 +178,21 @@ android/app/
 
 ---
 
-## Running the Application
+## ▶️ Running the Application
 
-### Run on Android Emulator or Physical Device
+### 📱 Run on Android Emulator or Physical Device
 
 ```bash
 flutter run
 ```
 
-### Run on Chrome (UI testing only)
+### 🌐 Run on Chrome (UI testing only)
 
 ```bash
 flutter run -d chrome
 ```
 
-### Build APK for Distribution
+### 📦 Build APK for Distribution
 
 ```bash
 flutter build apk
@@ -206,7 +206,7 @@ build/app/outputs/flutter-apk/
 
 ---
 
-## Testing Strategy
+## 🧪 Testing Strategy
 
 * Widget tests for UI components
 * Manual testing for authentication, product creation, cart flow, and order placement
@@ -214,40 +214,40 @@ build/app/outputs/flutter-apk/
 
 ---
 
-## Team Collaboration Guidelines
+## 👥 Team Collaboration Guidelines
 
-* Feature-based Git branching strategy
+* 🌿 Feature-based Git branching strategy
 * Pull Requests required before merging into main branch
 * Main branch remains stable and demo-ready
 * Regular team syncs to track progress and resolve blockers
 
 ---
 
-## Success Metrics
+## 📊 Success Metrics
 
-* All MVP features implemented and functional.
-* Firebase Authentication, Firestore, and Storage integrated successfully.
-* Stable APK build available for demonstration.
-* Positive feedback during project review or demo.
-* Clear differentiation from generic e-commerce platforms.
-
----
-
-## Future Enhancements
-
-* Payment gateway integration (Razorpay or Stripe)
-* Multi-language and regional language support
-* Audio or video-based artisan storytelling
-* Location-based discovery of local crafts
+* ✅ All MVP features implemented and functional.
+* 🔥 Firebase Authentication, Firestore, and Storage integrated successfully.
+* 📲 Stable APK build available for demonstration.
+* ⭐ Positive feedback during project review or demo.
+* 🎯 Clear differentiation from generic e-commerce platforms.
 
 ---
 
-## License
+## 🔮 Future Enhancements
+
+* 💳 Payment gateway integration (Razorpay or Stripe)
+* 🌍 Multi-language and regional language support
+* 🎤 Audio or video-based artisan storytelling
+* 📍 Location-based discovery of local crafts
+
+---
+
+## 📄 License
 
 This project is developed for academic and learning purposes.
 
 ---
 
-## Acknowledgements
+## 🙏 Acknowledgements
 
-ShilpSetu is inspired by India’s artisan communities and the principles of the Vocal for Local initiative.
+ShilpSetu is inspired by India's artisan communities
