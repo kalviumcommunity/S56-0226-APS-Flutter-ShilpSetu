@@ -26,10 +26,10 @@ ShilpSetu provides a lightweight, mobile-first digital storefront that allows ar
 
 ## 👥 Target Users
 
-* 🎭 Local artisans and craftsmen
-* 🏺 Small-scale handmade product sellers
-* 🤝 Self-help groups (SHGs) and NGOs supporting artisans
-* 🛒 Buyers seeking authentic local and handmade products
+* 🎭 Local artisans and craftsmen.
+* 🏺 Small-scale handmade product sellers.
+* 🤝 Self-help groups (SHGs) and NGOs supporting artisans.
+* 🛒 Buyers seeking authentic local and handmade products.
 
 ---
 
