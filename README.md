@@ -1,6 +1,6 @@
 # 🎨 ShilpSetu
 
-A Vocal-for-Local Digital Storefront for Artisans 🛍️✨
+A Vocal-for-Local Digital Storefront for Artisans🛍️
 
 ---
 
