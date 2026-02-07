@@ -1,0 +1,5 @@
+{
+    // Configure your Flutter SDK path here based on your local setup
+    // Example: "dart.flutterSdkPath": "/path/to/flutter"
+    // This file is ignored in version control, so local paths won't affect other developers
+}

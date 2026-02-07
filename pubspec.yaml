@@ -1,5 +1,8 @@
 name: s56_0226_aps_flutter_shilpsetu
 description: "A new Flutter project."
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -18,9 +21,6 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # of the product and file versions while build-number is used as the build suffix.
 version: 1.0.0+1
 
-environment:
-  sdk: ^3.10.8
-
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
 # consider running `flutter pub upgrade --major-versions`. Alternatively,
@@ -34,6 +34,9 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  firebase_core: 3.15.2
+  firebase_auth: ^5.0.0
+  provider: ^6.0.5
 
 dev_dependencies:
   flutter_test:
