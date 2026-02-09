@@ -50,12 +50,32 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      await auth.login(email, password);
-
+      final user = await auth.login(email, password);
+      
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Logged in successfully')),
-      );
+      
+      if (user != null) {
+        // AuthProvider fetches user data during login, so we can access it here
+        final role = auth.userModel?.role;
+        
+        if (role == 'buyer') {
+          Navigator.pushReplacementNamed(context, '/buyer-dashboard');
+        } else if (role == 'seller') {
+          Navigator.pushReplacementNamed(context, '/seller-dashboard');
+        } else {
+          // Fallback if role is unknown or missing (e.g. Firestore read failed)
+          print('Unknown role: $role');
+          
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('Offline Mode: Could not fetch role. Defaulting to Buyer Dashboard.'),
+              duration: Duration(seconds: 4),
+            ),
+          );
+          
+          Navigator.pushReplacementNamed(context, '/buyer-dashboard');
+        }
+      }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       // Use the generic error message from auth provider

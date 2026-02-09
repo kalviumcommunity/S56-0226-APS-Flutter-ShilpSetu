@@ -8,8 +8,7 @@ class CustomTextField extends StatelessWidget {
   final bool obscureText;
 
   const CustomTextField(
-      {Key? key, this.controller, this.hintText, this.obscureText = false})
-      : super(key: key);
+      {super.key, this.controller, this.hintText, this.obscureText = false});
 
   @override
   Widget build(BuildContext context) {
