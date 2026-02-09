@@ -30,12 +30,26 @@ class UserModel {
 
   /// Create UserModel from Firestore document
   factory UserModel.fromMap(Map<String, dynamic> map) {
+    // Handle serverTimestamp which can be null on first read
+    DateTime createdAt;
+    final createdAtField = map['createdAt'];
+    
+    if (createdAtField == null) {
+      // Use current time if serverTimestamp hasn't resolved yet
+      createdAt = DateTime.now();
+    } else if (createdAtField is Timestamp) {
+      createdAt = createdAtField.toDate();
+    } else {
+      // Fallback for unexpected types
+      createdAt = DateTime.now();
+    }
+
     return UserModel(
-      uid: map['uid'] as String,
-      email: map['email'] as String,
-      name: map['name'] as String,
-      role: map['role'] as String,
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      uid: map['uid'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      name: map['name'] as String? ?? 'User',
+      role: map['role'] as String? ?? 'buyer',
+      createdAt: createdAt,
     );
   }
 

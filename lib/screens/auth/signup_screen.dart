@@ -87,22 +87,12 @@ class _SignupScreenState extends State<SignupScreen> {
         const SnackBar(content: Text('Account created successfully')),
       );
 
-      print('DEBUG: Attempting navigation to dashboard for role: $role');
-      if (!mounted) {
-        print('DEBUG: Context not mounted, skipping navigation');
-        return;
-      }
-      
-      Navigator.pop(context); // Remove this to prevent going back to login
-      
+      // Navigate directly without popping first
       if (role == 'buyer') {
-        print('DEBUG: Navigating to Buyer Dashboard');
         Navigator.pushReplacementNamed(context, '/buyer-dashboard');
       } else {
-        print('DEBUG: Navigating to Seller Dashboard');
         Navigator.pushReplacementNamed(context, '/seller-dashboard');
       }
-      print('DEBUG: Navigation call completed');
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       // Use the generic error message from auth provider

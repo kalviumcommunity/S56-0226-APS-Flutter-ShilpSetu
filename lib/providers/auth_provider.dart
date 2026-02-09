@@ -23,8 +23,11 @@ class AuthProvider extends ChangeNotifier {
       final userData = await UserService.getUser(uid);
       if (userData != null) {
         _userModel = UserModel.fromMap(userData);
-        notifyListeners();
+      } else {
+        // Document doesn't exist, clear cache
+        _userModel = null;
       }
+      notifyListeners();
     } catch (e) {
       // Create a basic model from Auth user if Firestore fails (graceful degradation)
       if (_auth.currentUser != null) {
@@ -32,11 +35,12 @@ class AuthProvider extends ChangeNotifier {
           uid: _auth.currentUser!.uid,
           email: _auth.currentUser!.email ?? '',
           name: 'User', // Fallback
-          role: 'unknown',
+          role: 'buyer', // Default to buyer for safety
           createdAt: DateTime.now(),
         );
+        notifyListeners();
       }
-      debugPrint('Error fetching user data: $e');
+      debugPrint('Error fetching user data');
     }
   }
 
@@ -79,6 +83,12 @@ class AuthProvider extends ChangeNotifier {
     User? user;
     try {
       _setLoading(true);
+      
+      // Validate role before proceeding
+      if (!UserService.isValidRole(role)) {
+        throw Exception('Invalid role selected');
+      }
+      
       AuditLogger.logSignupAttempt(email);
 
       // 1. Create Authentication User
@@ -87,19 +97,16 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       );
       user = credential.user;
-      print('DEBUG: Auth user created: ${user?.uid}');
 
       if (user != null) {
         // 2. Create Firestore User Document
         try {
-          print('DEBUG: Creating Firestore document...');
           await UserService.createUser(
             uid: user.uid,
             email: email.trim(),
             name: name.trim(),
             role: role,
           );
-          print('DEBUG: Firestore document created successfully');
           AuditLogger.logFirestoreUserCreation(user.uid, role);
           
           // Set local user model immediately to avoid another fetch
@@ -110,20 +117,21 @@ class AuthProvider extends ChangeNotifier {
             role: role,
             createdAt: DateTime.now(),
           );
-          print('DEBUG: Local user model set');
           notifyListeners();
-          print('DEBUG: Listeners notified');
         } catch (e) {
-          print('DEBUG: Firestore creation failed: $e');
           // 3. Rollback: Delete Auth User if Firestore fails
-          await user.delete();
-          AuditLogger.logFirestoreUserCreationFailure(user.uid, e.toString());
+          try {
+            await user.delete();
+            AuditLogger.logFirestoreUserCreationFailure(user.uid, 'rollback_success');
+          } catch (deleteError) {
+            // Log delete failure but still throw original error
+            AuditLogger.logFirestoreUserCreationFailure(user.uid, 'rollback_failed');
+          }
           throw Exception('Failed to create user profile. Please try again.');
         }
       }
 
       AuditLogger.logSignupSuccess(email);
-      print('DEBUG: Signup success, returning user');
       return user;
     } on FirebaseAuthException catch (e) {
       AuditLogger.logSignupFailure(email, e.code);
@@ -148,9 +156,12 @@ class AuthProvider extends ChangeNotifier {
       final email = _auth.currentUser?.email;
       AuditLogger.logLogout(email);
       await _auth.signOut();
+      
+      // Clear cached user model on logout
+      _userModel = null;
       notifyListeners();
     } catch (e) {
-      AuditLogger.logLogoutFailure(e.toString());
+      AuditLogger.logLogoutFailure('logout_error');
       rethrow;
     }
   }

@@ -15,26 +15,22 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    print('DEBUG: Initializing Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print('DEBUG: Firebase initialized successfully');
     
     // Enable Firestore offline persistence (mobile/desktop only)
     // Web uses IndexedDB persistence automatically
     if (!kIsWeb) {
-      print('DEBUG: Enabling Firestore persistence...');
       FirebaseFirestore.instance.settings = const Settings(
         persistenceEnabled: true,
-        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+        cacheSizeBytes: 100 * 1024 * 1024, // 100MB cache limit
       );
-      print('DEBUG: Firestore persistence enabled');
     }
-  } catch (e, stackTrace) {
-    // Log initialization error and continue
-    debugPrint('Firebase initialization error: $e');
-    debugPrint('Stack trace: $stackTrace');
+  } catch (e) {
+    // Log generic error without exposing internal details
+    debugPrint('Firebase initialization failed');
+    // In production, send to crash reporting service
   }
 
   print('DEBUG: Starting app...');
@@ -46,7 +42,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('DEBUG: Building MyApp widget');
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthProvider>(
