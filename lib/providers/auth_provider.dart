@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../core/services/audit_logger.dart';
+import '../services/user_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final UserService _userService = UserService();
 
   bool _loading = false;
   bool get loading => _loading;
@@ -38,7 +41,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<User?> signup(String email, String password) async {
+  Future<User?> signup(String email, String password, String role) async {
     try {
       _setLoading(true);
       AuditLogger.logSignupAttempt(email);
@@ -47,6 +50,15 @@ class AuthProvider extends ChangeNotifier {
         email: email.trim(),
         password: password,
       );
+
+      // Create user document in Firestore with selected role
+      if (credential.user != null) {
+        await _userService.createUserDocument(
+          uid: credential.user!.uid,
+          email: email.trim(),
+          role: role,
+        );
+      }
 
       AuditLogger.logSignupSuccess(email);
       return credential.user;
@@ -62,6 +74,17 @@ class AuthProvider extends ChangeNotifier {
       rethrow;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  Future<String?> getUserRole(String uid) async {
+    try {
+      return await _userService.getUserRole(uid);
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error getting user role: $e');
+      }
+      return null;
     }
   }
 

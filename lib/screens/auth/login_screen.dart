@@ -8,6 +8,8 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../core/validators/auth_validators.dart';
 import '../../providers/auth_provider.dart' as app_auth;
+import '../seller/seller_dashboard.dart';
+import '../buyer/buyer_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,12 +52,40 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      await auth.login(email, password);
+      final user = await auth.login(email, password);
+
+      if (!mounted || user == null) return;
+
+      // Fetch user role from Firestore
+      final role = await auth.getUserRole(user.uid);
 
       if (!mounted) return;
+
       scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Logged in successfully')),
       );
+
+      // Navigate based on role
+      if (role == 'seller') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const SellerDashboard()),
+          (route) => false,
+        );
+      } else if (role == 'buyer') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const BuyerDashboard()),
+          (route) => false,
+        );
+      } else {
+        // Default to seller if role not found
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const SellerDashboard()),
+          (route) => false,
+        );
+      }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       // Use the generic error message from auth provider
