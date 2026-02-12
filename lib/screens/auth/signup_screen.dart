@@ -73,14 +73,12 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     try {
-      print('DEBUG: Calling auth.signup');
       await auth.signup(
         email: email,
         password: password,
         name: name,
         role: role,
       );
-      print('DEBUG: auth.signup returned');
 
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(
@@ -171,63 +169,16 @@ class _SignupScreenState extends State<SignupScreen> {
                             hintText: 'Password',
                             obscureText: true,
                           ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[300]!),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'I am a:',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: RadioListTile<String>(
-                                        title: const Text('Seller'),
-                                        subtitle: const Text('Sell products'),
-                                        value: 'seller',
-                                        groupValue: _selectedRole,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _selectedRole = value!;
-                                          });
-                                        },
-                                        contentPadding: EdgeInsets.zero,
-                                        dense: true,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: RadioListTile<String>(
-                                        title: const Text('Buyer'),
-                                        subtitle: const Text('Buy products'),
-                                        value: 'buyer',
-                                        groupValue: _selectedRole,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _selectedRole = value!;
-                                          });
-                                        },
-                                        contentPadding: EdgeInsets.zero,
-                                        dense: true,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                          const SizedBox(height: 20),
+                          const Text(
+                            'I am a:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text,
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(

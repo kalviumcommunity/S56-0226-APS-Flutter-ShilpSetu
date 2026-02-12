@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../core/services/audit_logger.dart';
@@ -33,7 +32,7 @@ class AuthProvider extends ChangeNotifier {
       // Graceful fallback
       if (_auth.currentUser != null) {
         _userModel = UserModel(
-          id: _auth.currentUser!.uid,
+          uid: _auth.currentUser!.uid,
           email: _auth.currentUser!.email ?? '',
           name: 'User',
           role: 'buyer',
@@ -118,7 +117,7 @@ class AuthProvider extends ChangeNotifier {
 
           // 3️⃣ Cache locally
           _userModel = UserModel(
-            id: user.uid,
+            uid: user.uid,
             email: email.trim(),
             name: name.trim(),
             role: role,

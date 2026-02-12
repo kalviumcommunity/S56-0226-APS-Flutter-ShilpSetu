@@ -30,11 +30,15 @@ Future<void> main() async {
     }
   } catch (e) {
     // Log generic error without exposing internal details
-    debugPrint('Firebase initialization failed');
+    if (kDebugMode) {
+      debugPrint('Firebase initialization failed');
+    }
     // In production, send to crash reporting service
   }
 
-  print('DEBUG: Starting app...');
+  if (kDebugMode) {
+    debugPrint('Starting app...');
+  }
   runApp(const MyApp());
 }
 
@@ -56,13 +60,10 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         home: const LoginScreen(),
         routes: {
-          routes: {
-  '/signup': (context) => const SignupScreen(),
-  '/login': (context) => const LoginScreen(),
-  '/buyer-dashboard': (context) => const BuyerDashboard(),
-  '/seller-dashboard': (context) => const SellerDashboard(),
-},
-
+          '/signup': (context) => const SignupScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/buyer-dashboard': (context) => const BuyerDashboard(),
+          '/seller-dashboard': (context) => const SellerDashboard(),
         },
       ),
     );

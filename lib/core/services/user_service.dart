@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../constants/firestore_collections.dart';
 
 /// Service for managing user documents in Firestore
 class UserService {
@@ -13,6 +14,7 @@ class UserService {
   }
 
   /// Creates a new user document in Firestore
+  /// Note: uid is NOT stored inside document, only used as document ID
   /// Throws an exception if the operation fails
   static Future<void> createUser({
     required String uid,
@@ -26,15 +28,13 @@ class UserService {
     }
 
     try {
-      await _firestore.collection('users').doc(uid).set({
-        'uid': uid,
+      await _firestore.collection(FirestoreCollections.users).doc(uid).set({
         'email': email,
         'name': name,
         'role': role.toLowerCase(),
         'createdAt': FieldValue.serverTimestamp(),
       }).timeout(const Duration(seconds: 10));
     } catch (e) {
-      print('DEBUG: Firestore createUser failed: ${e.runtimeType}');
       // Throw generic message without exposing internal details
       throw Exception('Failed to create user profile');
     }
@@ -44,7 +44,7 @@ class UserService {
   static Future<Map<String, dynamic>?> getUser(String uid) async {
     try {
       final doc = await _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .doc(uid)
           .get(const GetOptions(source: Source.serverAndCache))
           .timeout(
@@ -53,9 +53,19 @@ class UserService {
           );
       return doc.data();
     } catch (e) {
-      print('DEBUG: Firestore getUser failed: ${e.runtimeType}');
       // Throw generic message without exposing internal details
       throw Exception('Failed to retrieve user profile');
     }
   }
+
+  /// Get user role from Firestore
+  Future<String?> getUserRole(String uid) async {
+    try {
+      final userData = await UserService.getUser(uid);
+      return userData?['role'] as String?;
+    } catch (e) {
+      return null;
+    }
+  }
 }
+

@@ -18,9 +18,9 @@ class UserModel {
   });
 
   /// Convert UserModel to Firestore-compatible map
+  /// Note: uid is NOT stored in document, only used as document ID
   Map<String, dynamic> toMap() {
     return {
-      'uid': uid,
       'email': email,
       'name': name,
       'role': role,
@@ -29,7 +29,7 @@ class UserModel {
   }
 
   /// Create UserModel from Firestore document
-  factory UserModel.fromMap(Map<String, dynamic> map) {
+  factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
     // Handle serverTimestamp which can be null on first read
     DateTime createdAt;
     final createdAtField = map['createdAt'];
@@ -45,7 +45,7 @@ class UserModel {
     }
 
     return UserModel(
-      uid: map['uid'] as String? ?? '',
+      uid: uid, // uid comes from document ID, not from map
       email: map['email'] as String? ?? '',
       name: map['name'] as String? ?? 'User',
       role: map['role'] as String? ?? 'buyer',
