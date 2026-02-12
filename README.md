@@ -86,6 +86,7 @@ ShilpSetu provides a lightweight, mobile-first digital storefront that allows ar
 * Firebase Authentication
 * Cloud Firestore
 * Firebase Storage
+* Cloudinary (Image Upload & CDN)
 
 ### 🔧 Tools and Platforms
 
@@ -123,7 +124,8 @@ lib/
 │
 ├── services/
 │   ├── auth_service.dart
-│   └── firestore_service.dart
+│   ├── firestore_service.dart
+│   └── cloudinary_service.dart
 │
 └── providers/
     └── app_provider.dart
@@ -174,6 +176,17 @@ flutter pub get
 
 ```plaintext
 android/app/
+```
+
+### Step 4: Cloudinary Configuration
+
+* Create a Cloudinary account at https://cloudinary.com
+* Get your Cloud Name and create an Upload Preset (unsigned)
+* Update credentials in `lib/services/cloudinary_service.dart`:
+
+```dart
+static const String cloudName = 'YOUR_CLOUD_NAME';
+static const String uploadPreset = 'YOUR_UPLOAD_PRESET';
 ```
 
 ---
