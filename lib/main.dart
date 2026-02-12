@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
+import 'providers/product_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/buyer/buyer_dashboard.dart';
@@ -47,14 +48,21 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<AuthProvider>(
           create: (_) => AuthProvider(),
         ),
+        ChangeNotifierProvider<ProductProvider>(
+          create: (_) => ProductProvider(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         home: const LoginScreen(),
         routes: {
-          '/signup': (context) => const SignupScreen(),
-          '/buyer-dashboard': (context) => const BuyerDashboard(),
-          '/seller-dashboard': (context) => const SellerDashboard(),
+          routes: {
+  '/signup': (context) => const SignupScreen(),
+  '/login': (context) => const LoginScreen(),
+  '/buyer-dashboard': (context) => const BuyerDashboard(),
+  '/seller-dashboard': (context) => const SellerDashboard(),
+},
+
         },
       ),
     );

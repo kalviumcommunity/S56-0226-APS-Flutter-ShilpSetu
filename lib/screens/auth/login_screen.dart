@@ -8,6 +8,8 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../core/validators/auth_validators.dart';
 import '../../providers/auth_provider.dart' as app_auth;
+import '../seller/seller_dashboard.dart';
+import '../buyer/buyer_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
