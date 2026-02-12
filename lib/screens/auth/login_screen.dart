@@ -53,38 +53,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final user = await auth.login(email, password);
-
-      if (!mounted || user == null) return;
-
-      // Fetch user role from Firestore
-      final role = await auth.getUserRole(user.uid);
-
+      
       if (!mounted) return;
-
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Logged in successfully')),
-      );
-
-      // Navigate based on role
-      if (role == 'seller') {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const SellerDashboard()),
-          (route) => false,
-        );
-      } else if (role == 'buyer') {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const BuyerDashboard()),
-          (route) => false,
-        );
-      } else {
-        // Default to seller if role not found
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const SellerDashboard()),
-          (route) => false,
-        );
+      
+      if (user != null) {
+        // AuthProvider fetches user data during login, so we can access it here
+        final role = auth.userModel?.role;
+        
+        if (role == 'buyer') {
+          Navigator.pushReplacementNamed(context, '/buyer-dashboard');
+        } else if (role == 'seller') {
+          Navigator.pushReplacementNamed(context, '/seller-dashboard');
+        } else {
+          // Fallback if role is unknown or missing (e.g. Firestore read failed)
+          print('Unknown role: $role');
+          
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('Offline Mode: Could not fetch role. Defaulting to Buyer Dashboard.'),
+              duration: Duration(seconds: 4),
+            ),
+          );
+          
+          Navigator.pushReplacementNamed(context, '/buyer-dashboard');
+        }
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;

@@ -19,12 +19,14 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _passCtrl = TextEditingController();
-  String _selectedRole = 'seller'; // Default role
+  final TextEditingController _nameCtrl = TextEditingController();
+  String? _selectedRole;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
+    _nameCtrl.dispose();
     super.dispose();
   }
 
@@ -34,6 +36,23 @@ class _SignupScreenState extends State<SignupScreen> {
 
     final email = _emailCtrl.text.trim();
     final password = _passCtrl.text;
+
+    final name = _nameCtrl.text.trim();
+    final role = _selectedRole;
+
+    if (name.isEmpty) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Name is required')),
+      );
+      return;
+    }
+
+    if (role == null) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Please select a role (Buyer or Seller)')),
+      );
+      return;
+    }
 
     // Validate email format
     if (!AuthValidators.isValidEmail(email)) {
@@ -46,20 +65,34 @@ class _SignupScreenState extends State<SignupScreen> {
     // Validate password strength
     if (!AuthValidators.isValidPassword(password)) {
       scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(AuthValidators.getPasswordValidationError(password))),
+        SnackBar(
+            content:
+                Text(AuthValidators.getPasswordValidationError(password))),
       );
       return;
     }
 
     try {
-      await auth.signup(email, password, _selectedRole);
+      print('DEBUG: Calling auth.signup');
+      await auth.signup(
+        email: email,
+        password: password,
+        name: name,
+        role: role,
+      );
+      print('DEBUG: auth.signup returned');
 
       if (!mounted) return;
       scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Account created successfully')),
       );
 
-      Navigator.pop(context);
+      // Navigate directly without popping first
+      if (role == 'buyer') {
+        Navigator.pushReplacementNamed(context, '/buyer-dashboard');
+      } else {
+        Navigator.pushReplacementNamed(context, '/seller-dashboard');
+      }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       // Use the generic error message from auth provider
@@ -123,6 +156,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       child: Column(
                         children: [
+                          CustomTextField(
+                            controller: _nameCtrl,
+                            hintText: 'Full Name',
+                          ),
+                          const SizedBox(height: 12),
                           CustomTextField(
                             controller: _emailCtrl,
                             hintText: 'Email',
@@ -190,6 +228,28 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildRoleCard(
+                                  label: 'Buyer',
+                                  icon: Icons.shopping_bag_outlined,
+                                  isSelected: _selectedRole == 'buyer',
+                                  onTap: () => setState(() => _selectedRole = 'buyer'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildRoleCard(
+                                  label: 'Seller',
+                                  icon: Icons.storefront_outlined,
+                                  isSelected: _selectedRole == 'seller',
+                                  onTap: () => setState(() => _selectedRole = 'seller'),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
                           auth.loading
                               ? const CircularProgressIndicator()
                               : CustomButton(
@@ -205,6 +265,55 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+
+  Widget _buildRoleCard({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.grey.shade300,
+            width: 2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : AppColors.muted,
+              size: 28,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: AppTextStyles.body.copyWith(
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : AppColors.text,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

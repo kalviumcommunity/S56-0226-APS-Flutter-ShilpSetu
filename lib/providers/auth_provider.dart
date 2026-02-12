@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../core/services/audit_logger.dart';
-import '../services/user_service.dart';
+import '../core/services/user_service.dart';
+import '../models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -13,6 +14,39 @@ class AuthProvider extends ChangeNotifier {
   bool get loading => _loading;
 
   User? get currentUser => _auth.currentUser;
+
+  // Cache user data to avoid frequent Firestore fetches
+  UserModel? _userModel;
+  UserModel? get userModel => _userModel;
+
+  /// Fetches user data from Firestore and updates state
+  Future<void> fetchUserData(String uid) async {
+    try {
+      final userData = await UserService.getUser(uid);
+      if (userData != null) {
+        _userModel = UserModel.fromMap(userData, uid);
+      } else {
+        _userModel = null;
+      }
+      notifyListeners();
+    } catch (e) {
+      // Graceful fallback
+      if (_auth.currentUser != null) {
+        _userModel = UserModel(
+          id: _auth.currentUser!.uid,
+          email: _auth.currentUser!.email ?? '',
+          name: 'User',
+          role: 'buyer',
+          createdAt: DateTime.now(),
+        );
+        notifyListeners();
+      }
+
+      if (kDebugMode) {
+        debugPrint('Error fetching user data');
+      }
+    }
+  }
 
   Future<User?> login(String email, String password) async {
     try {
@@ -25,10 +59,14 @@ class AuthProvider extends ChangeNotifier {
       );
 
       AuditLogger.logLoginSuccess(email);
+
+      if (credential.user != null) {
+        await fetchUserData(credential.user!.uid);
+      }
+
       return credential.user;
     } on FirebaseAuthException catch (e) {
       AuditLogger.logLoginFailure(email, e.code);
-      // Return a generic error code, not the detailed message
       throw FirebaseAuthException(
         code: e.code,
         message: _getGenericErrorMessage(e.code),
@@ -41,37 +79,85 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<User?> signup(String email, String password, String role) async {
+  Future<User?> signup({
+    required String email,
+    required String password,
+    required String name,
+    required String role,
+  }) async {
+    User? user;
+
     try {
       _setLoading(true);
+
+      if (!UserService.isValidRole(role)) {
+        throw Exception('Invalid role selected');
+      }
+
       AuditLogger.logSignupAttempt(email);
 
+      // 1️⃣ Create Auth User
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
 
-      // Create user document in Firestore with selected role
-      if (credential.user != null) {
-        await _userService.createUserDocument(
-          uid: credential.user!.uid,
-          email: email.trim(),
-          role: role,
-        );
+      user = credential.user;
+
+      if (user != null) {
+        try {
+          // 2️⃣ Create Firestore User Document
+          await UserService.createUser(
+            uid: user.uid,
+            email: email.trim(),
+            name: name.trim(),
+            role: role,
+          );
+
+          AuditLogger.logFirestoreUserCreation(user.uid, role);
+
+          // 3️⃣ Cache locally
+          _userModel = UserModel(
+            id: user.uid,
+            email: email.trim(),
+            name: name.trim(),
+            role: role,
+            createdAt: DateTime.now(),
+          );
+
+          notifyListeners();
+        } catch (e) {
+          // 4️⃣ Rollback if Firestore fails
+          try {
+            await user.delete();
+            AuditLogger.logFirestoreUserCreationFailure(
+                user.uid, 'rollback_success');
+          } catch (_) {
+            AuditLogger.logFirestoreUserCreationFailure(
+                user.uid, 'rollback_failed');
+          }
+
+          throw Exception('Failed to create user profile. Please try again.');
+        }
       }
 
       AuditLogger.logSignupSuccess(email);
-      return credential.user;
+      return user;
     } on FirebaseAuthException catch (e) {
       AuditLogger.logSignupFailure(email, e.code);
-      // Return a generic error code, not the detailed message
+
       throw FirebaseAuthException(
         code: e.code,
         message: _getGenericErrorMessage(e.code),
       );
     } catch (e) {
       AuditLogger.logSignupFailure(email, 'unknown_error');
-      rethrow;
+
+      if (e.toString().contains('Failed to create user profile')) {
+        rethrow;
+      }
+
+      throw Exception('An error occurred. Please try again.');
     } finally {
       _setLoading(false);
     }
@@ -82,7 +168,7 @@ class AuthProvider extends ChangeNotifier {
       return await _userService.getUserRole(uid);
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error getting user role: $e');
+        debugPrint('Error getting user role: $e');
       }
       return null;
     }
@@ -92,10 +178,13 @@ class AuthProvider extends ChangeNotifier {
     try {
       final email = _auth.currentUser?.email;
       AuditLogger.logLogout(email);
+
       await _auth.signOut();
+
+      _userModel = null;
       notifyListeners();
     } catch (e) {
-      AuditLogger.logLogoutFailure(e.toString());
+      AuditLogger.logLogoutFailure('logout_error');
       rethrow;
     }
   }
@@ -105,8 +194,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Returns a generic error message based on Firebase error code
-  /// This prevents exposing sensitive error details to users
   static String _getGenericErrorMessage(String errorCode) {
     switch (errorCode) {
       case 'user-not-found':

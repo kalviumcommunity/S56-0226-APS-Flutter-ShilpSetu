@@ -83,4 +83,24 @@ class AuditLogger {
       error: {'error': error},
     );
   }
+
+  /// Logs Firestore user document creation
+  static void logFirestoreUserCreation(String uid, String role) {
+    developer.log(
+      'Firestore user document created',
+      time: DateTime.now(),
+      name: _source,
+      error: {'uid': uid, 'role': role},
+    );
+  }
+
+  /// Logs Firestore user creation failure
+  static void logFirestoreUserCreationFailure(String uid, String error) {
+    developer.log(
+      'Firestore user creation failed',
+      time: DateTime.now(),
+      name: _source,
+      error: {'uid': uid, 'error': error},
+    );
+  }
 }

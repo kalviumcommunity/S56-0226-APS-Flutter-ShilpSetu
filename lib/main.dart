@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
@@ -7,6 +9,8 @@ import 'providers/auth_provider.dart';
 import 'providers/product_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
+import 'screens/buyer/buyer_dashboard.dart';
+import 'screens/seller/seller_dashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,11 +19,22 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    
+    // Enable Firestore offline persistence (mobile/desktop only)
+    // Web uses IndexedDB persistence automatically
+    if (!kIsWeb) {
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: 100 * 1024 * 1024, // 100MB cache limit
+      );
+    }
   } catch (e) {
-    // Log initialization error and continue
-    // In production, consider using a crash reporting service
+    // Log generic error without exposing internal details
+    debugPrint('Firebase initialization failed');
+    // In production, send to crash reporting service
   }
 
+  print('DEBUG: Starting app...');
   runApp(const MyApp());
 }
 
@@ -41,8 +56,13 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         home: const LoginScreen(),
         routes: {
-          '/signup': (context) => const SignupScreen(),
-          '/login': (context) => const LoginScreen(),
+          routes: {
+  '/signup': (context) => const SignupScreen(),
+  '/login': (context) => const LoginScreen(),
+  '/buyer-dashboard': (context) => const BuyerDashboard(),
+  '/seller-dashboard': (context) => const SellerDashboard(),
+},
+
         },
       ),
     );
