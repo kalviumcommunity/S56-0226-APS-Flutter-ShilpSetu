@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
 import '../services/product_service.dart';
 
@@ -9,7 +10,11 @@ class ProductProvider extends ChangeNotifier {
   List<ProductModel> sellerProducts = [];
   List<ProductModel> allProducts = [];
   bool isLoading = false;
+  bool isLoadingMore = false;
   String? errorMessage;
+  DocumentSnapshot? _lastProductSnapshot;
+  bool hasMoreProducts = true;
+  static const int pageSize = 10;
 
   Future<void> fetchSellerProducts(String sellerId) async {
     try {
@@ -23,7 +28,7 @@ class ProductProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = 'Unable to load your products. Please try again.';
       notifyListeners();
     }
   }
@@ -32,15 +37,59 @@ class ProductProvider extends ChangeNotifier {
     try {
       isLoading = true;
       errorMessage = null;
+      allProducts.clear();
+      _lastProductSnapshot = null;
+      hasMoreProducts = true;
       notifyListeners();
 
-      allProducts = await _productService.getAllActiveProducts();
+      allProducts = await _productService.getAllActiveProducts(limit: pageSize);
+      _lastProductSnapshot = null;
+      hasMoreProducts = allProducts.length >= pageSize;
 
       isLoading = false;
       notifyListeners();
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = 'Unable to load products. Please try again.';
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchNextPage() async {
+    if (isLoadingMore || !hasMoreProducts) return;
+
+    try {
+      isLoadingMore = true;
+      notifyListeners();
+
+      if (_lastProductSnapshot == null && allProducts.isNotEmpty) {
+        // Get the last product doc snapshot for pagination
+        final lastProduct = allProducts.last;
+        _lastProductSnapshot =
+            await FirebaseFirestore.instance
+                .collection('products')
+                .doc(lastProduct.id)
+                .get();
+      }
+
+      final nextProducts = await _productService.getAllActiveProducts(
+        limit: pageSize,
+        startAfter: _lastProductSnapshot,
+      );
+
+      if (nextProducts.isEmpty) {
+        hasMoreProducts = false;
+      } else {
+        allProducts.addAll(nextProducts);
+        _lastProductSnapshot = null;
+        hasMoreProducts = nextProducts.length >= pageSize;
+      }
+
+      isLoadingMore = false;
+      notifyListeners();
+    } catch (e) {
+      isLoadingMore = false;
+      errorMessage = 'Failed to load more products.';
       notifyListeners();
     }
   }

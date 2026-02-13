@@ -15,13 +15,31 @@ class BuyerDashboard extends StatefulWidget {
 }
 
 class _BuyerDashboardState extends State<BuyerDashboard> {
+  late ScrollController _scrollController;
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+
     // Fetch products when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().fetchAllProducts();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent) {
+      context.read<ProductProvider>().fetchNextPage();
+    }
   }
 
   @override
@@ -82,14 +100,20 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                 }
 
                 return GridView.builder(
+                  controller: _scrollController,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
                     childAspectRatio: 0.65,
                   ),
-                  itemCount: products.length,
+                  itemCount: products.length + (productProvider.isLoadingMore ? 1 : 0),
                   itemBuilder: (context, index) {
+                    // Show loading indicator at the end if loading more
+                    if (index == products.length && productProvider.isLoadingMore) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
                     final p = products[index];
                     return GestureDetector(
                       onTap: () {
@@ -144,14 +168,14 @@ class _BuyerProductCard extends StatelessWidget {
               children: [
                 Text(
                   product.title,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  style: AppTextStyles.bodyBold,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
                 Text(
                   product.category,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: AppTextStyles.caption,
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -160,7 +184,7 @@ class _BuyerProductCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       product.price.toStringAsFixed(2),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: AppTextStyles.price,
                     ),
                   ],
                 ),

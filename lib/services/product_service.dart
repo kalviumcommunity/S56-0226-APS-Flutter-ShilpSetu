@@ -69,24 +69,28 @@ class ProductService {
     }
   }
 
-  Future<List<ProductModel>> getAllActiveProducts() async {
+  Future<List<ProductModel>> getAllActiveProducts({
+    int limit = 10,
+    DocumentSnapshot? startAfter,
+  }) async {
     try {
-      final snapshot = await _firestore
+      var query = _firestore
           .collection(FirestoreCollections.products)
           .where('isActive', isEqualTo: true)
-          .get();
+          .orderBy('createdAt', descending: true)
+          .limit(limit);
 
-      final products = snapshot.docs.map((doc) => ProductModel.fromMap(doc.data(), doc.id)).toList();
-      
-      // Sort by createdAt descending in Dart (avoids composite index requirement)
-      products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
-      return products;
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final snapshot = await query.get();
+      return snapshot.docs.map((doc) => ProductModel.fromMap(doc.data(), doc.id)).toList();
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error fetching active products: $e');
       }
-      throw Exception('Failed to fetch products: $e');
+      throw Exception('Unable to load products. Please try again.');
     }
   }
 

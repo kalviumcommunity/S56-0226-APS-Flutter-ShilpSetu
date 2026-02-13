@@ -15,6 +15,23 @@ class AppTextStyles {
 
   static const TextStyle body = TextStyle(fontSize: 14, color: AppColors.text);
 
+  static const TextStyle bodyBold = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    color: AppColors.text,
+  );
+
+  static const TextStyle caption = TextStyle(
+    fontSize: 12,
+    color: AppColors.muted,
+  );
+
+  static const TextStyle price = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    color: AppColors.text,
+  );
+
   static const TextStyle button = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
