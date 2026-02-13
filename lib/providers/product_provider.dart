@@ -7,6 +7,7 @@ class ProductProvider extends ChangeNotifier {
   final ProductService _productService = ProductService();
 
   List<ProductModel> sellerProducts = [];
+  List<ProductModel> allProducts = [];
   bool isLoading = false;
   String? errorMessage;
 
@@ -17,6 +18,23 @@ class ProductProvider extends ChangeNotifier {
       notifyListeners();
 
       sellerProducts = await _productService.getSellerProducts(sellerId);
+
+      isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      isLoading = false;
+      errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchAllProducts() async {
+    try {
+      isLoading = true;
+      errorMessage = null;
+      notifyListeners();
+
+      allProducts = await _productService.getAllActiveProducts();
 
       isLoading = false;
       notifyListeners();

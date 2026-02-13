@@ -1,17 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/product_provider.dart';
+import '../../models/product_model.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import 'product_detail_screen.dart';
 
-class BuyerDashboard extends StatelessWidget {
+class BuyerDashboard extends StatefulWidget {
   const BuyerDashboard({super.key});
 
   @override
+  State<BuyerDashboard> createState() => _BuyerDashboardState();
+}
+
+class _BuyerDashboardState extends State<BuyerDashboard> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch products when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProductProvider>().fetchAllProducts();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Watch for changes in user data
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.userModel;
+    final productProvider = context.watch<ProductProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -32,27 +49,125 @@ class BuyerDashboard extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(
-              Icons.shopping_bag_outlined,
-              size: 64,
-              color: AppColors.primary,
-            ),
-            const SizedBox(height: 24),
             Text(
               'Welcome, ${user?.name ?? "Buyer"}!',
               style: AppTextStyles.title,
             ),
             const SizedBox(height: 8),
             Text(
-              'Browse products and manage your orders.',
+              'Browse products',
               style: AppTextStyles.subtitle,
+            ),
+            const SizedBox(height: 16),
+
+            // Content
+            Expanded(
+              child: Builder(builder: (context) {
+                if (productProvider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (productProvider.errorMessage != null) {
+                  return Center(child: Text(productProvider.errorMessage!));
+                }
+
+                final products = productProvider.allProducts;
+                if (products.isEmpty) {
+                  return const Center(child: Text('No products available'));
+                }
+
+                return GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.65,
+                  ),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    final p = products[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => ProductDetailScreen(product: p),
+                        ));
+                      },
+                      child: _BuyerProductCard(product: p),
+                    );
+                  },
+                );
+              }),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BuyerProductCard extends StatelessWidget {
+  final ProductModel product;
+
+  const _BuyerProductCard({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.network(
+                product.imageUrl,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stack) => Container(
+                  color: Colors.grey[200],
+                  child: const Center(child: Icon(Icons.broken_image)),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.title,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  product.category,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.currency_rupee, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      product.price.toStringAsFixed(2),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
