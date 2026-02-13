@@ -69,6 +69,31 @@ class ProductService {
     }
   }
 
+  Future<List<ProductModel>> getAllActiveProducts({
+    int limit = 10,
+    DocumentSnapshot? startAfter,
+  }) async {
+    try {
+      var query = _firestore
+          .collection(FirestoreCollections.products)
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: true)
+          .limit(limit);
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final snapshot = await query.get();
+      return snapshot.docs.map((doc) => ProductModel.fromMap(doc.data(), doc.id)).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error fetching active products: $e');
+      }
+      throw Exception('Unable to load products. Please try again.');
+    }
+  }
+
   Future<void> deleteProduct(String productId) async {
     try {
       await _firestore.collection(FirestoreCollections.products).doc(productId).delete();
