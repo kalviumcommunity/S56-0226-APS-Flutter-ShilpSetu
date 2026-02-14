@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../models/product_model.dart';
+import '../../models/review_model.dart';
 import '../../providers/cart_provider.dart';
+import '../../services/review_service.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import '../seller/seller_profile_screen.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final ProductModel product;
   const ProductDetailScreen({super.key, required this.product});
+
+  String _formatDate(DateTime date) {
+    return DateFormat('MMM dd, yyyy').format(date);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +79,32 @@ class ProductDetailScreen extends StatelessWidget {
                 style: AppTextStyles.subtitle,
               ),
 
+              // Rating Display
+              if (product.reviewCount > 0) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.star, color: Colors.amber, size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      product.averageRating.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '(${product.reviewCount} ${product.reviewCount == 1 ? 'review' : 'reviews'})',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
               const SizedBox(height: 16),
               Text(
                 'Description',
@@ -88,14 +122,75 @@ class ProductDetailScreen extends StatelessWidget {
                 style: AppTextStyles.subtitle,
               ),
               const SizedBox(height: 8),
-              Text(
-                product.sellerName,
-                style: const TextStyle(fontSize: 16),
+              InkWell(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SellerProfileScreen(sellerId: product.sellerId),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: AppColors.primary,
+                        child: Text(
+                          product.sellerName[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          product.sellerName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    ],
+                  ),
+                ),
               ),
 
               // Stock Information
               const SizedBox(height: 16),
               _buildStockInfo(product),
+
+              // Reviews Section
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Customer Reviews',
+                    style: AppTextStyles.subtitle.copyWith(fontSize: 18),
+                  ),
+                  if (product.reviewCount > 0)
+                    TextButton(
+                      onPressed: () {
+                        // Could navigate to full reviews page
+                      },
+                      child: const Text('See all'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildReviewsList(product.id),
 
               const SizedBox(height: 24),
               Row(
@@ -133,6 +228,140 @@ class ProductDetailScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildReviewsList(String productId) {
+    final reviewService = ReviewService();
+
+    return StreamBuilder<List<ReviewModel>>(
+      stream: reviewService.getProductReviews(productId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Failed to load reviews',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          );
+        }
+
+        final reviews = snapshot.data ?? [];
+
+        if (reviews.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.rate_review_outlined,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No reviews yet',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Be the first to review this product',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Show first 3 reviews
+        final displayReviews = reviews.take(3).toList();
+
+        return Column(
+          children: displayReviews.map((review) {
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: AppColors.primary,
+                          child: Text(
+                            review.buyerName[0].toUpperCase(),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                review.buyerName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  ...List.generate(5, (index) {
+                                    return Icon(
+                                      index < review.rating
+                                          ? Icons.star
+                                          : Icons.star_border,
+                                      size: 16,
+                                      color: Colors.amber,
+                                    );
+                                  }),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _formatDate(review.createdAt.toDate()),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      review.comment,
+                      style: const TextStyle(fontSize: 14, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 

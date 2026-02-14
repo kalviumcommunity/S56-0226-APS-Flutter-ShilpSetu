@@ -47,6 +47,13 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Refreshes current user data from Firestore
+  Future<void> refreshUserData() async {
+    if (_auth.currentUser != null) {
+      await fetchUserData(_auth.currentUser!.uid);
+    }
+  }
+
   Future<User?> login(String email, String password) async {
     try {
       _setLoading(true);
