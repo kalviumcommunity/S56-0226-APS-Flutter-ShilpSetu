@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/product_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../models/product_model.dart';
+import '../../services/product_service.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import 'product_detail_screen.dart';
@@ -19,38 +19,12 @@ class BuyerDashboard extends StatefulWidget {
 }
 
 class _BuyerDashboardState extends State<BuyerDashboard> {
-  late ScrollController _scrollController;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_onScroll);
-
-    // Fetch products when screen opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProductProvider>().fetchAllProducts();
-    });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels ==
-        _scrollController.position.maxScrollExtent) {
-      context.read<ProductProvider>().fetchNextPage();
-    }
-  }
+  final ProductService _productService = ProductService();
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.userModel;
-    final productProvider = context.watch<ProductProvider>();
     final cartProvider = context.watch<CartProvider>();
     final buyerId = authProvider.currentUser?.uid ?? '';
 
@@ -154,49 +128,69 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             ),
             const SizedBox(height: 16),
 
-            // Content
+            // Content - Real-time product stream
             Expanded(
-              child: Builder(builder: (context) {
-                if (productProvider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+              child: StreamBuilder<List<ProductModel>>(
+                stream: _productService.getAllActiveProductsStream(limit: 50),
+                builder: (context, snapshot) {
+                  // Loading state
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                if (productProvider.errorMessage != null) {
-                  return Center(child: Text(productProvider.errorMessage!));
-                }
-
-                final products = productProvider.allProducts;
-                if (products.isEmpty) {
-                  return const Center(child: Text('No products available'));
-                }
-
-                return GridView.builder(
-                  controller: _scrollController,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.65,
-                  ),
-                  itemCount: products.length + (productProvider.isLoadingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    // Show loading indicator at the end if loading more
-                    if (index == products.length && productProvider.isLoadingMore) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    final p = products[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => ProductDetailScreen(product: p),
-                        ));
-                      },
-                      child: _BuyerProductCard(product: p),
+                  // Error state
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                          const SizedBox(height: 16),
+                          const Text('Failed to load products'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => setState(() {}),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
                     );
-                  },
-                );
-              }),
+                  }
+
+                  final products = snapshot.data ?? [];
+
+                  // Empty state
+                  if (products.isEmpty) {
+                    return const Center(
+                      child: Text('No products available'),
+                    );
+                  }
+
+                  // Products grid
+                  return GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.65,
+                    ),
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ProductDetailScreen(product: product),
+                            ),
+                          );
+                        },
+                        child: _BuyerProductCard(product: product),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -219,17 +213,62 @@ class _BuyerProductCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: Image.network(
-                product.imageUrl,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stack) => Container(
-                  color: Colors.grey[200],
-                  child: const Center(child: Icon(Icons.broken_image)),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Image.network(
+                    product.imageUrl,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) => Container(
+                      color: Colors.grey[200],
+                      child: const Center(child: Icon(Icons.broken_image)),
+                    ),
+                  ),
                 ),
-              ),
+                // Stock badge
+                if (product.stock == 0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'OUT OF STOCK',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  )
+                else if (product.stock <= 5)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'ONLY ${product.stock} LEFT',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           Padding(

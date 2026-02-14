@@ -73,6 +73,59 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
     }
   }
 
+  Future<void> _cancelOrder(String orderId) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: const Text(
+          'Are you sure you want to cancel this order? Stock will be restored.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Yes, Cancel Order'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _orderService.cancelOrder(orderId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order cancelled successfully. Stock restored.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      
+      // Refresh orders
+      _fetchOrders();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to cancel order: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   String _formatDate(DateTime date) {
     return DateFormat('MMM dd, yyyy • hh:mm a').format(date);
   }
@@ -89,14 +142,61 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
     return parts.where((part) => part.isNotEmpty).join(', ');
   }
 
+  IconData _getPaymentIcon(String paymentMethod) {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cod':
+        return Icons.money;
+      case 'razorpay':
+        return Icons.payment;
+      case 'upi':
+        return Icons.account_balance;
+      case 'card':
+        return Icons.credit_card;
+      default:
+        return Icons.payment;
+    }
+  }
+
+  String _getPaymentMethodLabel(String paymentMethod) {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cod':
+        return 'Cash on Delivery';
+      case 'razorpay':
+        return 'Razorpay';
+      case 'upi':
+        return 'UPI';
+      case 'card':
+        return 'Credit/Debit Card';
+      default:
+        return paymentMethod.toUpperCase();
+    }
+  }
+
+  Color _getPaymentStatusColor(String paymentStatus) {
+    switch (paymentStatus.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'paid':
+        return Colors.green;
+      case 'failed':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
         return Colors.orange;
       case 'accepted':
         return Colors.blue;
-      case 'completed':
+      case 'shipped':
+        return Colors.purple;
+      case 'delivered':
         return Colors.green;
+      case 'cancelled':
+        return Colors.red;
       default:
         return Colors.grey;
     }
@@ -341,6 +441,61 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                     const Divider(height: 24),
                   ],
 
+                  // Payment Information
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Payment Method',
+                              style: AppTextStyles.caption,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(
+                                  _getPaymentIcon(order.paymentMethod),
+                                  size: 16,
+                                  color: Colors.grey[700],
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _getPaymentMethodLabel(order.paymentMethod),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getPaymentStatusColor(order.paymentStatus)
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          order.paymentStatus.toUpperCase(),
+                          style: TextStyle(
+                            color: _getPaymentStatusColor(order.paymentStatus),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const Divider(height: 24),
+
                   // Total Amount
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -371,27 +526,75 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                   // Action Buttons
                   if (order.status == 'pending') ...[
                     const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _updateOrderStatus(order.id, 'accepted'),
+                            icon: const Icon(Icons.check_circle_outline),
+                            label: const Text('Accept'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _cancelOrder(order.id),
+                            icon: const Icon(Icons.cancel_outlined),
+                            label: const Text('Cancel'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (order.status == 'accepted') ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _updateOrderStatus(order.id, 'shipped'),
+                            icon: const Icon(Icons.local_shipping),
+                            label: const Text('Mark as Shipped'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () => _updateOrderStatus(order.id, 'accepted'),
-                        icon: const Icon(Icons.check_circle_outline),
-                        label: const Text('Accept Order'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _cancelOrder(order.id),
+                        icon: const Icon(Icons.cancel_outlined),
+                        label: const Text('Cancel Order'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
                     ),
                   ],
-                  if (order.status == 'accepted') ...[
+                  if (order.status == 'shipped') ...[
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () => _updateOrderStatus(order.id, 'completed'),
+                        onPressed: () => _updateOrderStatus(order.id, 'delivered'),
                         icon: const Icon(Icons.done_all),
-                        label: const Text('Mark as Completed'),
+                        label: const Text('Mark as Delivered'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           padding: const EdgeInsets.symmetric(vertical: 12),

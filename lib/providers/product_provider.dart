@@ -101,6 +101,7 @@ class ProductProvider extends ChangeNotifier {
     required String description,
     required double price,
     required String category,
+    required int stock,
     required XFile imageFile,
   }) async {
     try {
@@ -111,6 +112,7 @@ class ProductProvider extends ChangeNotifier {
         description: description,
         price: price,
         category: category,
+        stock: stock,
         imageFile: imageFile,
       );
 
@@ -139,6 +141,7 @@ class ProductProvider extends ChangeNotifier {
     required String description,
     required double price,
     required String category,
+    required int stock,
     XFile? imageFile,
   }) async {
     try {
@@ -148,6 +151,7 @@ class ProductProvider extends ChangeNotifier {
         description: description,
         price: price,
         category: category,
+        stock: stock,
         imageFile: imageFile,
       );
 

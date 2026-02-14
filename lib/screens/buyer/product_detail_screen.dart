@@ -92,30 +92,37 @@ class ProductDetailScreen extends StatelessWidget {
                 product.sellerName,
                 style: const TextStyle(fontSize: 16),
               ),
+
+              // Stock Information
+              const SizedBox(height: 16),
+              _buildStockInfo(product),
+
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        context.read<CartProvider>().addToCart(product);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${product.title} added to cart'),
-                            duration: const Duration(seconds: 2),
-                            action: SnackBarAction(
-                              label: 'VIEW CART',
-                              onPressed: () {
-                                Navigator.of(context).pushNamed('/cart');
-                              },
-                            ),
-                          ),
-                        );
-                      },
+                      onPressed: product.stock > 0
+                          ? () {
+                              context.read<CartProvider>().addToCart(product);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${product.title} added to cart'),
+                                  duration: const Duration(seconds: 2),
+                                  action: SnackBarAction(
+                                    label: 'VIEW CART',
+                                    onPressed: () {
+                                      Navigator.of(context).pushNamed('/cart');
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          : null, // Disabled if out of stock
                       icon: const Icon(Icons.add_shopping_cart),
-                      label: const Text('Add to Cart'),
+                      label: Text(product.stock > 0 ? 'Add to Cart' : 'Out of Stock'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: product.stock > 0 ? AppColors.primary : Colors.grey,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
@@ -127,5 +134,80 @@ class ProductDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildStockInfo(ProductModel product) {
+    if (product.stock == 0) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red.withOpacity(0.3)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Out of Stock',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (product.stock <= 5) {
+      // Low stock warning
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'Only ${product.stock} left in stock!',
+              style: const TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // In stock
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.green.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'In Stock (${product.stock} available)',
+              style: const TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

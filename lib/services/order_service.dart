@@ -14,13 +14,18 @@ class OrderService {
     required String buyerId,
     required List<CartItem> cartItems,
     required Map<String, dynamic> shippingAddress,
+    required String paymentMethod,
+    required String paymentStatus,
   }) async {
     try {
       if (cartItems.isEmpty) {
         throw Exception('Cart is empty');
       }
 
-      // Group cart items by sellerId
+      // Step 1: Validate and deduct stock using transaction
+      await _validateAndDeductStock(cartItems);
+
+      // Step 2: Group cart items by sellerId
       final Map<String, List<CartItem>> itemsBySeller = {};
       for (final cartItem in cartItems) {
         final sellerId = cartItem.product.sellerId;
@@ -30,7 +35,7 @@ class OrderService {
         itemsBySeller[sellerId]!.add(cartItem);
       }
 
-      // Create one order per seller
+      // Step 3: Create one order per seller
       final List<String> orderIds = [];
       
       for (final entry in itemsBySeller.entries) {
@@ -63,6 +68,8 @@ class OrderService {
           'status': 'pending',
           'createdAt': FieldValue.serverTimestamp(),
           'shippingAddress': shippingAddress,
+          'paymentMethod': paymentMethod,
+          'paymentStatus': paymentStatus,
         };
 
         // Create order in Firestore
@@ -85,6 +92,85 @@ class OrderService {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Error creating orders: $e');
+      }
+      rethrow;
+    }
+  }
+
+  /// Validates stock availability and deducts stock using Firestore transaction
+  /// Throws exception if any product has insufficient stock
+  Future<void> _validateAndDeductStock(List<CartItem> cartItems) async {
+    try {
+      await _firestore.runTransaction((transaction) async {
+        // Step 1: Read all product documents
+        final Map<String, DocumentSnapshot> productDocs = {};
+        
+        for (final cartItem in cartItems) {
+          final productRef = _firestore
+              .collection(FirestoreCollections.products)
+              .doc(cartItem.product.id);
+          
+          final productDoc = await transaction.get(productRef);
+          
+          if (!productDoc.exists) {
+            throw Exception('Product "${cartItem.product.title}" no longer exists');
+          }
+          
+          productDocs[cartItem.product.id] = productDoc;
+        }
+
+        // Step 2: Validate stock for all products
+        final List<String> insufficientStockProducts = [];
+        
+        for (final cartItem in cartItems) {
+          final productDoc = productDocs[cartItem.product.id]!;
+          final data = productDoc.data() as Map<String, dynamic>?;
+          final currentStock = data?['stock'] ?? 0;
+          final isActive = data?['isActive'] ?? false;
+          
+          if (!isActive) {
+            throw Exception('Product "${cartItem.product.title}" is no longer available');
+          }
+          
+          if (currentStock < cartItem.quantity) {
+            insufficientStockProducts.add(
+              '${cartItem.product.title} (Available: $currentStock, Requested: ${cartItem.quantity})'
+            );
+          }
+        }
+
+        // If any product has insufficient stock, throw exception
+        if (insufficientStockProducts.isNotEmpty) {
+          throw Exception(
+            'Insufficient stock for:\n${insufficientStockProducts.join('\n')}'
+          );
+        }
+
+        // Step 3: Deduct stock for all products
+        for (final cartItem in cartItems) {
+          final productRef = _firestore
+              .collection(FirestoreCollections.products)
+              .doc(cartItem.product.id);
+          
+          final productDoc = productDocs[cartItem.product.id]!;
+          final data = productDoc.data() as Map<String, dynamic>?;
+          final currentStock = data?['stock'] ?? 0;
+          final newStock = currentStock - cartItem.quantity;
+          
+          transaction.update(productRef, {'stock': newStock});
+          
+          if (kDebugMode) {
+            debugPrint('✅ Stock deducted for ${cartItem.product.title}: $currentStock → $newStock');
+          }
+        }
+      });
+      
+      if (kDebugMode) {
+        debugPrint('✅ Stock validation and deduction completed successfully');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Stock validation/deduction failed: $e');
       }
       rethrow;
     }
@@ -179,20 +265,131 @@ class OrderService {
     }
   }
 
-  /// Updates the status of an order
+  /// Updates the status of an order with validation
+  /// Enforces valid status transitions: pending → accepted → shipped → delivered
   Future<void> updateOrderStatus(String orderId, String newStatus) async {
     try {
+      // Fetch current order to validate transition
+      final orderDoc = await _firestore
+          .collection(FirestoreCollections.orders)
+          .doc(orderId)
+          .get();
+
+      if (!orderDoc.exists) {
+        throw Exception('Order not found');
+      }
+
+      final currentStatus = orderDoc.data()?['status'] ?? 'pending';
+
+      // Validate status transition
+      if (!OrderModel.isValidTransition(currentStatus, newStatus)) {
+        throw Exception(
+          'Invalid status transition: $currentStatus → $newStatus. '
+          'Valid transitions: pending → accepted → shipped → delivered'
+        );
+      }
+
+      // Update status with timestamp
       await _firestore
           .collection(FirestoreCollections.orders)
           .doc(orderId)
-          .update({'status': newStatus});
+          .update({
+        'status': newStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       if (kDebugMode) {
-        debugPrint('✅ Order $orderId status updated to $newStatus');
+        debugPrint('✅ Order $orderId status updated: $currentStatus → $newStatus');
       }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Error updating order status: $e');
+      }
+      rethrow;
+    }
+  }
+
+  /// Cancels an order and restores stock using transaction
+  /// Can only cancel orders with status: pending or accepted
+  /// Throws exception if cancellation is not allowed or fails
+  Future<void> cancelOrder(String orderId) async {
+    try {
+      await _firestore.runTransaction((transaction) async {
+        // Step 1: Fetch order document
+        final orderRef = _firestore
+            .collection(FirestoreCollections.orders)
+            .doc(orderId);
+        
+        final orderDoc = await transaction.get(orderRef);
+        
+        if (!orderDoc.exists) {
+          throw Exception('Order not found');
+        }
+
+        final orderData = orderDoc.data() as Map<String, dynamic>;
+        final currentStatus = orderData['status'] ?? 'pending';
+
+        // Step 2: Validate cancellation is allowed
+        if (currentStatus == OrderModel.statusCancelled) {
+          throw Exception('Order is already cancelled');
+        }
+
+        if (currentStatus == OrderModel.statusShipped) {
+          throw Exception('Cannot cancel order - already shipped');
+        }
+
+        if (currentStatus == OrderModel.statusDelivered) {
+          throw Exception('Cannot cancel order - already delivered');
+        }
+
+        if (currentStatus != OrderModel.statusPending && 
+            currentStatus != OrderModel.statusAccepted) {
+          throw Exception('Order cannot be cancelled at this stage');
+        }
+
+        // Step 3: Restore stock for each item
+        final items = (orderData['items'] as List<dynamic>?) ?? [];
+        
+        for (final item in items) {
+          final productId = item['productId'] as String;
+          final quantity = item['quantity'] as int;
+
+          final productRef = _firestore
+              .collection(FirestoreCollections.products)
+              .doc(productId);
+          
+          final productDoc = await transaction.get(productRef);
+          
+          if (productDoc.exists) {
+            final productData = productDoc.data() as Map<String, dynamic>?;
+            final currentStock = productData?['stock'] ?? 0;
+            final restoredStock = currentStock + quantity;
+            
+            transaction.update(productRef, {'stock': restoredStock});
+            
+            if (kDebugMode) {
+              debugPrint('✅ Stock restored for product $productId: $currentStock → $restoredStock');
+            }
+          } else {
+            if (kDebugMode) {
+              debugPrint('⚠️ Product $productId not found, skipping stock restoration');
+            }
+          }
+        }
+
+        // Step 4: Update order status to cancelled
+        transaction.update(orderRef, {
+          'status': OrderModel.statusCancelled,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (kDebugMode) {
+          debugPrint('✅ Order $orderId cancelled successfully');
+        }
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Error cancelling order: $e');
       }
       rethrow;
     }

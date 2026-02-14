@@ -10,6 +10,7 @@ import '../../core/constants/text_styles.dart';
 import 'order_success_screen.dart';
 import 'select_address_screen.dart';
 import 'manage_address_screen.dart';
+import 'payment_selection_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -95,12 +96,34 @@ class _CartScreenState extends State<CartScreen> {
         return;
       }
 
+      // Navigate to payment selection
+      final paymentData = await navigator.push<Map<String, String>>(
+        MaterialPageRoute(
+          builder: (_) => PaymentSelectionScreen(
+            totalAmount: cartProvider.totalPrice,
+          ),
+        ),
+      );
+
+      if (paymentData == null) {
+        // User cancelled payment selection
+        return;
+      }
+
       // Proceed with order creation
-      await _createOrder(selectedAddress);
+      await _createOrder(
+        selectedAddress,
+        paymentData['paymentMethod']!,
+        paymentData['paymentStatus']!,
+      );
     }
   }
 
-  Future<void> _createOrder(AddressModel address) async {
+  Future<void> _createOrder(
+    AddressModel address,
+    String paymentMethod,
+    String paymentStatus,
+  ) async {
     final cartProvider = context.read<CartProvider>();
     final authProvider = context.read<AuthProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -132,6 +155,8 @@ class _CartScreenState extends State<CartScreen> {
         buyerId: buyerId,
         cartItems: cartProvider.items,
         shippingAddress: shippingAddress,
+        paymentMethod: paymentMethod,
+        paymentStatus: paymentStatus,
       );
 
       // Clear cart on success
@@ -246,6 +271,25 @@ class _CartScreenState extends State<CartScreen> {
                                         ),
                                       ],
                                     ),
+                                    const SizedBox(height: 4),
+                                    // Stock warning
+                                    if (cartItem.quantity > product.stock)
+                                      Text(
+                                        'Only ${product.stock} available',
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    else if (product.stock <= 5)
+                                      Text(
+                                        'Only ${product.stock} left',
+                                        style: const TextStyle(
+                                          color: Colors.orange,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     const SizedBox(height: 8),
                                     Row(
                                       children: [
@@ -264,19 +308,29 @@ class _CartScreenState extends State<CartScreen> {
                                         // Quantity
                                         Text(
                                           '${cartItem.quantity}',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
+                                            color: cartItem.quantity > product.stock
+                                                ? Colors.red
+                                                : Colors.black,
                                           ),
                                         ),
                                         const SizedBox(width: 12),
 
                                         // Increase button
                                         IconButton(
-                                          onPressed: () {
-                                            cartProvider.increaseQuantity(product.id);
-                                          },
-                                          icon: const Icon(Icons.add_circle_outline),
+                                          onPressed: cartItem.quantity < product.stock
+                                              ? () {
+                                                  cartProvider.increaseQuantity(product.id);
+                                                }
+                                              : null, // Disabled if at max stock
+                                          icon: Icon(
+                                            Icons.add_circle_outline,
+                                            color: cartItem.quantity < product.stock
+                                                ? null
+                                                : Colors.grey,
+                                          ),
                                           iconSize: 24,
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(),
