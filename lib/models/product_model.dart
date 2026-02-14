@@ -12,6 +12,8 @@ class ProductModel {
   final bool isActive;
   final Timestamp createdAt;
   final int stock;
+  final double averageRating;
+  final int reviewCount;
 
   ProductModel({
     required this.id,
@@ -25,6 +27,8 @@ class ProductModel {
     required this.isActive,
     required this.createdAt,
     this.stock = 0,
+    this.averageRating = 0.0,
+    this.reviewCount = 0,
   });
 
   factory ProductModel.fromMap(Map<String, dynamic> map, String documentId) {
@@ -40,6 +44,8 @@ class ProductModel {
       isActive: map['isActive'] ?? true,
       createdAt: map['createdAt'] ?? Timestamp.now(),
       stock: map['stock'] ?? 0,
+      averageRating: (map['averageRating'] ?? 0).toDouble(),
+      reviewCount: map['reviewCount'] ?? 0,
     );
   }
 
@@ -55,6 +61,8 @@ class ProductModel {
       'isActive': isActive,
       'createdAt': createdAt,
       'stock': stock,
+      'averageRating': averageRating,
+      'reviewCount': reviewCount,
     };
   }
 

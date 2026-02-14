@@ -8,6 +8,11 @@ class UserModel {
   final String name;
   final String role; // "buyer" or "seller"
   final DateTime createdAt;
+  
+  // Seller-specific fields (optional for buyers)
+  final String? bio;
+  final String? profileImageUrl;
+  final String? city;
 
   UserModel({
     required this.uid,
@@ -15,6 +20,9 @@ class UserModel {
     required this.name,
     required this.role,
     required this.createdAt,
+    this.bio,
+    this.profileImageUrl,
+    this.city,
   });
 
   /// Convert UserModel to Firestore-compatible map
@@ -25,6 +33,9 @@ class UserModel {
       'name': name,
       'role': role,
       'createdAt': Timestamp.fromDate(createdAt),
+      if (bio != null) 'bio': bio,
+      if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
+      if (city != null) 'city': city,
     };
   }
 
@@ -50,6 +61,9 @@ class UserModel {
       name: map['name'] as String? ?? 'User',
       role: map['role'] as String? ?? 'buyer',
       createdAt: createdAt,
+      bio: map['bio'] as String?,
+      profileImageUrl: map['profileImageUrl'] as String?,
+      city: map['city'] as String?,
     );
   }
 
@@ -67,4 +81,10 @@ class UserModel {
       createdAt: DateTime.now(),
     );
   }
+
+  /// Helper to check if user is a seller
+  bool get isSeller => role == 'seller';
+
+  /// Helper to check if user is a buyer
+  bool get isBuyer => role == 'buyer';
 }

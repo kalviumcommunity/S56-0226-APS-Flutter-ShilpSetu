@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/order_model.dart';
+import '../../models/product_model.dart';
 import '../../services/order_service.dart';
+import '../../services/review_service.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import 'add_review_screen.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   final String buyerId;
@@ -16,6 +20,7 @@ class OrderHistoryScreen extends StatefulWidget {
 
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   final OrderService _orderService = OrderService();
+  final ReviewService _reviewService = ReviewService();
 
   Future<void> _cancelOrder(String orderId) async {
     // Show confirmation dialog
@@ -416,6 +421,87 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           ),
                         ),
                       ],
+
+                      // Rate Products Button (for delivered orders)
+                      if (order.status == 'delivered') ...[
+                        const SizedBox(height: 12),
+                        ...order.items.map((item) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: FutureBuilder<bool>(
+                              future: _reviewService.hasReviewed(
+                                productId: item.productId,
+                                orderId: order.id,
+                                buyerId: widget.buyerId,
+                              ),
+                              builder: (context, snapshot) {
+                                final hasReviewed = snapshot.data ?? false;
+
+                                if (hasReviewed) {
+                                  return Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.green.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'You reviewed: ${item.title}',
+                                            style: const TextStyle(
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+
+                                return ElevatedButton.icon(
+                                  onPressed: () async {
+                                    // Need to fetch product details
+                                    final result = await Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => AddReviewScreen(
+                                          product: _createProductFromOrderItem(item),
+                                          orderId: order.id,
+                                          buyerId: widget.buyerId,
+                                          buyerName: 'Buyer', // You may want to pass actual buyer name
+                                        ),
+                                      ),
+                                    );
+
+                                    if (result == true && mounted) {
+                                      setState(() {}); // Refresh to show reviewed status
+                                    }
+                                  },
+                                  icon: const Icon(Icons.star_rate),
+                                  label: Text('Rate: ${item.title}'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.amber,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        }),
+                      ],
                     ],
                   ),
                 ),
@@ -502,5 +588,21 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       default:
         return Colors.grey;
     }
+  }
+
+  // Helper to create ProductModel from OrderItem for review screen
+  ProductModel _createProductFromOrderItem(OrderItem item) {
+    return ProductModel(
+      id: item.productId,
+      sellerId: '',
+      sellerName: '',
+      title: item.title,
+      description: '',
+      price: item.price,
+      category: '',
+      imageUrl: item.imageUrl,
+      isActive: true,
+      createdAt: Timestamp.now(),
+    );
   }
 }

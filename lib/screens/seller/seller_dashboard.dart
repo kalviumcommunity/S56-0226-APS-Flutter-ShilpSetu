@@ -6,6 +6,8 @@ import '../../widgets/product_card.dart';
 import '../../core/constants/colors.dart';
 import 'add_product_screen.dart';
 import 'seller_orders_screen.dart';
+import 'edit_seller_profile_screen.dart';
+import 'analytics_screen.dart';
 
 class SellerDashboard extends StatefulWidget {
   const SellerDashboard({super.key});
@@ -21,7 +23,7 @@ class _SellerDashboardState extends State<SellerDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final sellerId = context.read<AuthProvider>().currentUser!.uid;
@@ -69,6 +71,17 @@ class _SellerDashboardState extends State<SellerDashboard>
         foregroundColor: AppColors.text,
         actions: [
           IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'Edit Profile',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const EditSellerProfileScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
             onPressed: () async {
@@ -93,6 +106,10 @@ class _SellerDashboardState extends State<SellerDashboard>
               icon: Icon(Icons.shopping_bag),
               text: 'Orders',
             ),
+            Tab(
+              icon: Icon(Icons.analytics),
+              text: 'Analytics',
+            ),
           ],
         ),
       ),
@@ -101,6 +118,14 @@ class _SellerDashboardState extends State<SellerDashboard>
         children: [
           _buildProductsTab(),
           SellerOrdersScreen(sellerId: sellerId),
+          Consumer<ProductProvider>(
+            builder: (context, productProvider, _) {
+              return AnalyticsScreen(
+                sellerId: sellerId,
+                totalProducts: productProvider.sellerProducts.length,
+              );
+            },
+          ),
         ],
       ),
       floatingActionButton: _tabController.index == 0
