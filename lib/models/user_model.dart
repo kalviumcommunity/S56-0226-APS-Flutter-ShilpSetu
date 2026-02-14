@@ -6,8 +6,9 @@ class UserModel {
   final String uid;
   final String email;
   final String name;
-  final String role; // "buyer" or "seller"
+  final String role; // "buyer", "seller", or "admin"
   final DateTime createdAt;
+  final bool isActive; // NEW: User account status
   
   // Seller-specific fields (optional for buyers)
   final String? bio;
@@ -20,6 +21,7 @@ class UserModel {
     required this.name,
     required this.role,
     required this.createdAt,
+    this.isActive = true, // Default to active
     this.bio,
     this.profileImageUrl,
     this.city,
@@ -33,6 +35,7 @@ class UserModel {
       'name': name,
       'role': role,
       'createdAt': Timestamp.fromDate(createdAt),
+      'isActive': isActive,
       if (bio != null) 'bio': bio,
       if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
       if (city != null) 'city': city,
@@ -61,6 +64,7 @@ class UserModel {
       name: map['name'] as String? ?? 'User',
       role: map['role'] as String? ?? 'buyer',
       createdAt: createdAt,
+      isActive: map['isActive'] as bool? ?? true,
       bio: map['bio'] as String?,
       profileImageUrl: map['profileImageUrl'] as String?,
       city: map['city'] as String?,
@@ -87,4 +91,7 @@ class UserModel {
 
   /// Helper to check if user is a buyer
   bool get isBuyer => role == 'buyer';
+  
+  /// Helper to check if user is an admin
+  bool get isAdmin => role == 'admin';
 }
