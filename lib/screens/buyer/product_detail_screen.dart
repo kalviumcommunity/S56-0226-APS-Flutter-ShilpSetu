@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/product_model.dart';
+import '../../providers/cart_provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 
@@ -91,17 +93,34 @@ class ProductDetailScreen extends StatelessWidget {
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  // Placeholder: implement purchase/checkout flow later
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
-                child: const SizedBox(
-                  width: double.infinity,
-                  child: Center(child: Text('Buy Now')),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        context.read<CartProvider>().addToCart(product);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${product.title} added to cart'),
+                            duration: const Duration(seconds: 2),
+                            action: SnackBarAction(
+                              label: 'VIEW CART',
+                              onPressed: () {
+                                Navigator.of(context).pushNamed('/cart');
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add_shopping_cart),
+                      label: const Text('Add to Cart'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
