@@ -58,7 +58,9 @@ class _LoginScreenState extends State<LoginScreen> {
         // AuthProvider fetches user data during login, so we can access it here
         final role = auth.userModel?.role;
         
-        if (role == 'buyer') {
+        if (role == 'admin') {
+          Navigator.pushReplacementNamed(context, '/admin-dashboard');
+        } else if (role == 'buyer') {
           Navigator.pushReplacementNamed(context, '/buyer-dashboard');
         } else if (role == 'seller') {
           Navigator.pushReplacementNamed(context, '/seller-dashboard');

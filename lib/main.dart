@@ -13,6 +13,7 @@ import 'screens/auth/signup_screen.dart';
 import 'screens/buyer/buyer_dashboard.dart';
 import 'screens/buyer/cart_screen.dart';
 import 'screens/seller/seller_dashboard.dart';
+import 'screens/admin/admin_dashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +70,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/buyer-dashboard': (context) => const BuyerDashboard(),
           '/seller-dashboard': (context) => const SellerDashboard(),
+          '/admin-dashboard': (context) => const AdminDashboard(),
           '/cart': (context) => const CartScreen(),
         },
       ),
