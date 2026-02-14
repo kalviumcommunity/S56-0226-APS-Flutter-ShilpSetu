@@ -77,6 +77,18 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
     return DateFormat('MMM dd, yyyy • hh:mm a').format(date);
   }
 
+  String _formatShippingAddress(Map<String, dynamic> address) {
+    final parts = <String>[
+      address['addressLine1'] ?? '',
+      if (address['addressLine2'] != null && address['addressLine2'].toString().isNotEmpty)
+        address['addressLine2'],
+      address['city'] ?? '',
+      address['state'] ?? '',
+      address['pincode'] ?? '',
+    ];
+    return parts.where((part) => part.isNotEmpty).join(', ');
+  }
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -273,6 +285,61 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                       )),
 
                   const Divider(height: 24),
+
+                  // Shipping Address
+                  if (order.shippingAddress != null) ...[
+                    Text(
+                      'Delivery Address',
+                      style: AppTextStyles.subtitle,
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.person, size: 16, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                order.shippingAddress!['fullName'] ?? '',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.phone, size: 16, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(order.shippingAddress!['phoneNumber'] ?? ''),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _formatShippingAddress(order.shippingAddress!),
+                                  style: const TextStyle(height: 1.4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 24),
+                  ],
 
                   // Total Amount
                   Row(
