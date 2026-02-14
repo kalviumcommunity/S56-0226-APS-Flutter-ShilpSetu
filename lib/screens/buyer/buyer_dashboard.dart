@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../providers/cart_provider.dart';
 import '../../models/product_model.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import 'product_detail_screen.dart';
+import 'cart_screen.dart';
+import 'order_history_screen.dart';
 
 class BuyerDashboard extends StatefulWidget {
   const BuyerDashboard({super.key});
@@ -47,6 +50,8 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.userModel;
     final productProvider = context.watch<ProductProvider>();
+    final cartProvider = context.watch<CartProvider>();
+    final buyerId = authProvider.currentUser?.uid ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -57,7 +62,57 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
         foregroundColor: AppColors.text,
         actions: [
           IconButton(
+            icon: const Icon(Icons.receipt_long),
+            tooltip: 'My Orders',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => OrderHistoryScreen(buyerId: buyerId),
+                ),
+              );
+            },
+          ),
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_cart),
+                tooltip: 'Cart',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  );
+                },
+              ),
+              if (cartProvider.totalItems > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Text(
+                      '${cartProvider.totalItems}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
             onPressed: () async {
               await context.read<AuthProvider>().logout();
               if (context.mounted) {

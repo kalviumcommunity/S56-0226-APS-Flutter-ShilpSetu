@@ -7,9 +7,11 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/product_provider.dart';
+import 'providers/cart_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/buyer/buyer_dashboard.dart';
+import 'screens/buyer/cart_screen.dart';
 import 'screens/seller/seller_dashboard.dart';
 
 Future<void> main() async {
@@ -55,6 +57,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<ProductProvider>(
           create: (_) => ProductProvider(),
         ),
+        ChangeNotifierProvider<CartProvider>(
+          create: (_) => CartProvider(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -64,6 +69,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/buyer-dashboard': (context) => const BuyerDashboard(),
           '/seller-dashboard': (context) => const SellerDashboard(),
+          '/cart': (context) => const CartScreen(),
         },
       ),
     );
