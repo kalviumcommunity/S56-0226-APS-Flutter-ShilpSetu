@@ -11,6 +11,7 @@ class ProductModel {
   final String imageUrl;
   final bool isActive;
   final Timestamp createdAt;
+  final int stock;
 
   ProductModel({
     required this.id,
@@ -23,6 +24,7 @@ class ProductModel {
     required this.imageUrl,
     required this.isActive,
     required this.createdAt,
+    this.stock = 0,
   });
 
   factory ProductModel.fromMap(Map<String, dynamic> map, String documentId) {
@@ -37,6 +39,7 @@ class ProductModel {
       imageUrl: map['imageUrl'] ?? '',
       isActive: map['isActive'] ?? true,
       createdAt: map['createdAt'] ?? Timestamp.now(),
+      stock: map['stock'] ?? 0,
     );
   }
 
@@ -51,6 +54,13 @@ class ProductModel {
       'imageUrl': imageUrl,
       'isActive': isActive,
       'createdAt': createdAt,
+      'stock': stock,
     };
   }
+
+  // Helper to check if product is in stock
+  bool get isInStock => stock > 0;
+
+  // Helper to check if quantity is available
+  bool hasStock(int quantity) => stock >= quantity;
 }

@@ -16,6 +16,7 @@ class ProductService {
     required String description,
     required double price,
     required String category,
+    required int stock,
     required XFile imageFile,
   }) async {
     try {
@@ -36,6 +37,7 @@ class ProductService {
         'category': category,
         'imageUrl': imageUrl,
         'isActive': true,
+        'stock': stock,
         'createdAt': Timestamp.now(),
       });
 
@@ -94,6 +96,28 @@ class ProductService {
     }
   }
 
+  /// Get real-time stream of all active products
+  Stream<List<ProductModel>> getAllActiveProductsStream({int limit = 50}) {
+    try {
+      return _firestore
+          .collection(FirestoreCollections.products)
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs
+            .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+            .toList();
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error creating products stream: $e');
+      }
+      rethrow;
+    }
+  }
+
   Future<void> deleteProduct(String productId) async {
     try {
       await _firestore.collection(FirestoreCollections.products).doc(productId).delete();
@@ -114,6 +138,7 @@ class ProductService {
     required String description,
     required double price,
     required String category,
+    required int stock,
     XFile? imageFile,
   }) async {
     try {
@@ -122,6 +147,7 @@ class ProductService {
         'description': description,
         'price': price,
         'category': category,
+        'stock': stock,
       };
 
       // Upload new image if provided

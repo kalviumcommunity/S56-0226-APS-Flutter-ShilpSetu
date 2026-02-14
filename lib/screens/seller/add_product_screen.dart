@@ -22,6 +22,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
+  final _stockController = TextEditingController();
   
   final ImagePicker _picker = ImagePicker();
   XFile? _selectedImage;
@@ -37,6 +38,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _titleController.text = widget.product!.title;
       _descriptionController.text = widget.product!.description;
       _priceController.text = widget.product!.price.toString();
+      _stockController.text = widget.product!.stock.toString();
       
       // Handle legacy categories - find matching category or default to first
       final productCategory = widget.product!.category;
@@ -47,6 +49,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _selectedCategory = matchingCategory;
     } else {
       _selectedCategory = productCategories.first;
+      _stockController.text = '0';
     }
   }
 
@@ -55,6 +58,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _stockController.dispose();
     super.dispose();
   }
 
@@ -141,6 +145,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           description: _descriptionController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           category: _selectedCategory!,
+          stock: int.parse(_stockController.text.trim()),
           imageFile: _selectedImage,
         );
       } else {
@@ -152,6 +157,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           description: _descriptionController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           category: _selectedCategory!,
+          stock: int.parse(_stockController.text.trim()),
           imageFile: _selectedImage!,
         );
       }
@@ -304,6 +310,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   final price = double.tryParse(value.trim());
                   if (price == null || price <= 0) {
                     return 'Please enter valid price';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _stockController,
+                decoration: const InputDecoration(
+                  labelText: 'Stock Quantity',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.inventory),
+                  helperText: 'Number of items available',
+                ),
+                keyboardType: TextInputType.number,
+                enabled: !_isUploading,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter stock quantity';
+                  }
+                  final stock = int.tryParse(value.trim());
+                  if (stock == null || stock < 0) {
+                    return 'Stock must be 0 or greater';
                   }
                   return null;
                 },

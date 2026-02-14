@@ -5,10 +5,67 @@ import '../../services/order_service.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 
-class OrderHistoryScreen extends StatelessWidget {
+class OrderHistoryScreen extends StatefulWidget {
   final String buyerId;
 
   const OrderHistoryScreen({super.key, required this.buyerId});
+
+  @override
+  State<OrderHistoryScreen> createState() => _OrderHistoryScreenState();
+}
+
+class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
+  final OrderService _orderService = OrderService();
+
+  Future<void> _cancelOrder(String orderId) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: const Text(
+          'Are you sure you want to cancel this order? Stock will be restored.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Yes, Cancel Order'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _orderService.cancelOrder(orderId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order cancelled successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to cancel order: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   String _formatDate(DateTime date) {
     return DateFormat('MMM dd, yyyy • hh:mm a').format(date);
@@ -20,8 +77,12 @@ class OrderHistoryScreen extends StatelessWidget {
         return Colors.orange;
       case 'accepted':
         return Colors.blue;
-      case 'completed':
+      case 'shipped':
+        return Colors.purple;
+      case 'delivered':
         return Colors.green;
+      case 'cancelled':
+        return Colors.red;
       default:
         return Colors.grey;
     }
@@ -33,8 +94,12 @@ class OrderHistoryScreen extends StatelessWidget {
         return 'Pending';
       case 'accepted':
         return 'Accepted';
-      case 'completed':
-        return 'Completed';
+      case 'shipped':
+        return 'Shipped';
+      case 'delivered':
+        return 'Delivered';
+      case 'cancelled':
+        return 'Cancelled';
       default:
         return status;
     }
@@ -42,8 +107,6 @@ class OrderHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orderService = OrderService();
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -53,7 +116,7 @@ class OrderHistoryScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: StreamBuilder<List<OrderModel>>(
-        stream: orderService.getOrdersByBuyer(buyerId),
+        stream: _orderService.getOrdersByBuyer(widget.buyerId),
         builder: (context, snapshot) {
           // Loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -236,6 +299,47 @@ class OrderHistoryScreen extends StatelessWidget {
 
                       const Divider(height: 24),
 
+                      // Payment Information
+                      Row(
+                        children: [
+                          Icon(
+                            _getPaymentIcon(order.paymentMethod),
+                            size: 16,
+                            color: Colors.grey[700],
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _getPaymentMethodLabel(order.paymentMethod),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getPaymentStatusColor(order.paymentStatus)
+                                  .withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              order.paymentStatus.toUpperCase(),
+                              style: TextStyle(
+                                color: _getPaymentStatusColor(order.paymentStatus),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const Divider(height: 24),
+
                       // Total Amount
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -294,6 +398,24 @@ class OrderHistoryScreen extends StatelessWidget {
                           ],
                         ),
                       ),
+
+                      // Cancel Order Button
+                      if (order.status == 'pending' || order.status == 'accepted') ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _cancelOrder(order.id),
+                            icon: const Icon(Icons.cancel_outlined),
+                            label: const Text('Cancel Order'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -311,8 +433,12 @@ class OrderHistoryScreen extends StatelessWidget {
         return Icons.schedule;
       case 'accepted':
         return Icons.check_circle_outline;
-      case 'completed':
+      case 'shipped':
+        return Icons.local_shipping;
+      case 'delivered':
         return Icons.done_all;
+      case 'cancelled':
+        return Icons.cancel;
       default:
         return Icons.info_outline;
     }
@@ -323,11 +449,58 @@ class OrderHistoryScreen extends StatelessWidget {
       case 'pending':
         return 'Waiting for seller to accept your order';
       case 'accepted':
-        return 'Seller is preparing your order';
-      case 'completed':
-        return 'Order completed successfully';
+        return 'Seller confirmed your order and is preparing it';
+      case 'shipped':
+        return 'Your order is on the way!';
+      case 'delivered':
+        return 'Order delivered successfully';
+      case 'cancelled':
+        return 'This order has been cancelled';
       default:
         return 'Order status: $status';
+    }
+  }
+
+  IconData _getPaymentIcon(String paymentMethod) {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cod':
+        return Icons.money;
+      case 'razorpay':
+        return Icons.payment;
+      case 'upi':
+        return Icons.account_balance;
+      case 'card':
+        return Icons.credit_card;
+      default:
+        return Icons.payment;
+    }
+  }
+
+  String _getPaymentMethodLabel(String paymentMethod) {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cod':
+        return 'Cash on Delivery';
+      case 'razorpay':
+        return 'Razorpay';
+      case 'upi':
+        return 'UPI';
+      case 'card':
+        return 'Credit/Debit Card';
+      default:
+        return paymentMethod.toUpperCase();
+    }
+  }
+
+  Color _getPaymentStatusColor(String paymentStatus) {
+    switch (paymentStatus.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'paid':
+        return Colors.green;
+      case 'failed':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 }
