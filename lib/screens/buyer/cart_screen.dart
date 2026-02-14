@@ -3,9 +3,13 @@ import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/order_service.dart';
+import '../../services/address_service.dart';
+import '../../models/address_model.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import 'order_success_screen.dart';
+import 'select_address_screen.dart';
+import 'manage_address_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -16,6 +20,7 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final OrderService _orderService = OrderService();
+  final AddressService _addressService = AddressService();
   bool _isPlacingOrder = false;
 
   Future<void> _handlePlaceOrder() async {
@@ -39,6 +44,71 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
+    // Check if user has any addresses
+    final hasAddresses = await _addressService.hasAddresses(buyerId);
+    
+    if (!hasAddresses) {
+      // Show dialog and navigate to add address
+      if (mounted) {
+        final shouldAddAddress = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('No Delivery Address'),
+            content: const Text('Please add a delivery address to place your order.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
+                child: const Text('Add Address'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldAddAddress == true && mounted) {
+          navigator.push(
+            MaterialPageRoute(
+              builder: (_) => ManageAddressScreen(userId: buyerId),
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    // Navigate to address selection
+    if (mounted) {
+      final selectedAddress = await navigator.push<AddressModel>(
+        MaterialPageRoute(
+          builder: (_) => SelectAddressScreen(userId: buyerId),
+        ),
+      );
+
+      if (selectedAddress == null) {
+        // User cancelled address selection
+        return;
+      }
+
+      // Proceed with order creation
+      await _createOrder(selectedAddress);
+    }
+  }
+
+  Future<void> _createOrder(AddressModel address) async {
+    final cartProvider = context.read<CartProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final buyerId = authProvider.currentUser?.uid;
+    if (buyerId == null) return;
+
     setState(() {
       _isPlacingOrder = true;
     });
@@ -46,10 +116,22 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final totalAmount = cartProvider.totalPrice;
       
+      // Create shipping address snapshot
+      final shippingAddress = {
+        'fullName': address.fullName,
+        'phoneNumber': address.phoneNumber,
+        'addressLine1': address.addressLine1,
+        'addressLine2': address.addressLine2,
+        'city': address.city,
+        'state': address.state,
+        'pincode': address.pincode,
+      };
+
       // Create orders (grouped by seller)
       final orderIds = await _orderService.createOrders(
         buyerId: buyerId,
         cartItems: cartProvider.items,
+        shippingAddress: shippingAddress,
       );
 
       // Clear cart on success

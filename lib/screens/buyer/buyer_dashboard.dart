@@ -9,6 +9,7 @@ import '../../core/constants/text_styles.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
 import 'order_history_screen.dart';
+import 'manage_address_screen.dart';
 
 class BuyerDashboard extends StatefulWidget {
   const BuyerDashboard({super.key});
@@ -61,6 +62,19 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
         elevation: 0,
         foregroundColor: AppColors.text,
         actions: [
+          // Manage Addresses
+          IconButton(
+            icon: const Icon(Icons.location_on),
+            tooltip: 'Manage Addresses',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ManageAddressScreen(userId: buyerId),
+                ),
+              );
+            },
+          ),
+          // My Orders
           IconButton(
             icon: const Icon(Icons.receipt_long),
             tooltip: 'My Orders',
@@ -72,6 +86,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
               );
             },
           ),
+          // Cart with badge
           Stack(
             children: [
               IconButton(
@@ -110,6 +125,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                 ),
             ],
           ),
+          // Logout
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',

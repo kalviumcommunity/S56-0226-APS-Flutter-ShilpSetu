@@ -13,6 +13,7 @@ class OrderService {
   Future<List<String>> createOrders({
     required String buyerId,
     required List<CartItem> cartItems,
+    required Map<String, dynamic> shippingAddress,
   }) async {
     try {
       if (cartItems.isEmpty) {
@@ -61,6 +62,7 @@ class OrderService {
           'totalAmount': totalAmount,
           'status': 'pending',
           'createdAt': FieldValue.serverTimestamp(),
+          'shippingAddress': shippingAddress,
         };
 
         // Create order in Firestore
