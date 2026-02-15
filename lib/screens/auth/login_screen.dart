@@ -6,6 +6,7 @@ import '../../widgets/custom_textfield.dart';
 import '../../widgets/custom_button.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import '../../core/constants/spacing.dart';
 import '../../core/validators/auth_validators.dart';
 import '../../providers/auth_provider.dart' as app_auth;
 
@@ -78,15 +79,43 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      // Use the generic error message from auth provider
+      
+      // Check for network errors
+      String errorMessage = e.message ?? 'An error occurred. Please try again.';
+      if (e.code == 'network-request-failed' || 
+          errorMessage.toLowerCase().contains('network')) {
+        errorMessage = '⚠️ Network Error: Cannot reach Firebase servers.\n\n'
+            'Please check:\n'
+            '• Emulator internet connection\n'
+            '• Try restarting emulator with: emulator -dns-server 8.8.8.8\n'
+            '• Or use a physical device for testing';
+      }
+      
       scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(e.message ?? 'An error occurred. Please try again.')),
+        SnackBar(
+          content: Text(errorMessage),
+          duration: const Duration(seconds: 6),
+          backgroundColor: AppColors.error,
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      // Never expose full exception details to user
+      
+      // Check if it's a network-related error
+      String errorMessage = 'An error occurred. Please try again.';
+      if (e.toString().toLowerCase().contains('network') ||
+          e.toString().toLowerCase().contains('socket') ||
+          e.toString().toLowerCase().contains('host lookup')) {
+        errorMessage = '⚠️ Network Error: Cannot connect to servers.\n\n'
+            'Emulator network issue detected. See EMULATOR_NETWORK_FIX.md for solutions.';
+      }
+      
       scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('An error occurred. Please try again.')),
+        SnackBar(
+          content: Text(errorMessage),
+          duration: const Duration(seconds: 6),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
   }
@@ -97,84 +126,103 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Login'),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        foregroundColor: AppColors.text,
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final formWidth =
-              constraints.maxWidth > 600 ? 420.0 : constraints.maxWidth * 0.9;
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final formWidth = constraints.maxWidth > 600 
+                ? 420.0 
+                : constraints.maxWidth - (AppSpacing.screenPadding * 2);
 
-          return Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: SizedBox(
-                width: formWidth,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Artisan Storefront',
-                        style: AppTextStyles.title),
-                    const SizedBox(height: 8),
-                    Text(
-                      'A simple digital storefront for local makers — manage products and orders effortlessly.',
-                      style: AppTextStyles.subtitle,
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+            return Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.screenPadding),
+                child: SizedBox(
+                  width: formWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: AppSpacing.lg),
+                      
+                      // Title
+                      Text(
+                        'Welcome Back',
+                        style: AppTextStyles.pageTitle,
+                        textAlign: TextAlign.center,
                       ),
-                      child: Column(
-                        children: [
-                          CustomTextField(
-                            controller: _emailCtrl,
-                            hintText: 'Email',
-                          ),
-                          const SizedBox(height: 12),
-                          CustomTextField(
-                            controller: _passCtrl,
-                            hintText: 'Password',
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 20),
-                          auth.loading
-                              ? const CircularProgressIndicator()
-                              : CustomButton(
-                                  label: 'Login',
-                                  onPressed: _doLogin,
-                                ),
-                        ],
+                      const SizedBox(height: AppSpacing.xs),
+                      
+                      // Subtitle
+                      Text(
+                        'Sign in to continue to ShilpSetu',
+                        style: AppTextStyles.caption,
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/signup');
-                        },
-                        child:
-                            const Text("Don't have an account? Sign up"),
+                      const SizedBox(height: AppSpacing.lg),
+                      
+                      // Form Card
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            CustomTextField(
+                              controller: _emailCtrl,
+                              hintText: 'Email address',
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            CustomTextField(
+                              controller: _passCtrl,
+                              hintText: 'Password',
+                              obscureText: true,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            auth.loading
+                                ? const CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      AppColors.mutedForestGreen,
+                                    ),
+                                  )
+                                : CustomButton(
+                                    label: 'Sign In',
+                                    onPressed: _doLogin,
+                                  ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.sm),
+                      
+                      // Sign up link
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/signup');
+                          },
+                          child: Text(
+                            "Don't have an account? Sign up",
+                            style: AppTextStyles.body.copyWith(
+                              color: AppColors.primaryAccent,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

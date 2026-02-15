@@ -7,7 +7,9 @@ import '../../models/sort_option.dart';
 import '../../services/product_service.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import '../../core/constants/spacing.dart';
 import '../../widgets/filter_bottom_sheet.dart';
+import '../../widgets/buyer_product_card.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
 import 'order_history_screen.dart';
@@ -168,14 +170,11 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Buyer Dashboard'),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        foregroundColor: AppColors.text,
+        title: Text('Discover', style: AppTextStyles.sectionTitle),
         actions: [
           // Manage Addresses
           IconButton(
-            icon: const Icon(Icons.location_on),
+            icon: const Icon(Icons.location_on_outlined),
             tooltip: 'Manage Addresses',
             onPressed: () {
               Navigator.of(context).push(
@@ -187,7 +186,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
           ),
           // My Orders
           IconButton(
-            icon: const Icon(Icons.receipt_long),
+            icon: const Icon(Icons.receipt_long_outlined),
             tooltip: 'My Orders',
             onPressed: () {
               Navigator.of(context).push(
@@ -201,7 +200,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
           Stack(
             children: [
               IconButton(
-                icon: const Icon(Icons.shopping_cart),
+                icon: const Icon(Icons.shopping_bag_outlined),
                 tooltip: 'Cart',
                 onPressed: () {
                   Navigator.of(context).push(
@@ -216,7 +215,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: Colors.red,
+                      color: AppColors.error,
                       shape: BoxShape.circle,
                     ),
                     constraints: const BoxConstraints(
@@ -238,7 +237,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
           ),
           // Logout
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_outlined),
             tooltip: 'Logout',
             onPressed: () async {
               await context.read<AuthProvider>().logout();
@@ -250,22 +249,31 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.screenPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome, ${user?.name ?? "Buyer"}!',
-              style: AppTextStyles.title,
+              'Hello, ${user?.name ?? "there"}',
+              style: AppTextStyles.pageTitle,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Find unique handcrafted items',
+              style: AppTextStyles.caption,
+            ),
+            const SizedBox(height: AppSpacing.md),
 
             // Search Bar
             TextField(
               controller: _searchController,
+              style: AppTextStyles.body,
               decoration: InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search),
+                hintText: 'Search artisan products...',
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                ),
                 suffixIcon: searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
@@ -279,12 +287,24 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                     : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.inputBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.inputBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.mutedForestGreen,
+                    width: 1.5,
+                  ),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.surface,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 12,
+                  vertical: 14,
                 ),
               ),
               onChanged: (value) {
@@ -294,7 +314,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
               },
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
 
             // Filter and Sort Row
             StreamBuilder<List<ProductModel>>(
@@ -310,19 +330,26 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                         onPressed: () => _showFilterBottomSheet(allProducts),
                         icon: Icon(
                           _hasActiveFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
-                          size: 20,
+                          size: 18,
                         ),
-                        label: Text(_hasActiveFilters ? 'Filters (Active)' : 'Filters'),
+                        label: Text(_hasActiveFilters ? 'Filters' : 'Filter'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: _hasActiveFilters ? AppColors.primary : Colors.grey[700],
+                          foregroundColor: _hasActiveFilters 
+                              ? AppColors.mutedForestGreen 
+                              : AppColors.textSecondary,
                           side: BorderSide(
-                            color: _hasActiveFilters ? AppColors.primary : Colors.grey[300]!,
+                            color: _hasActiveFilters 
+                                ? AppColors.mutedForestGreen 
+                                : AppColors.inputBorder,
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.sm),
 
                     // Sort Dropdown
                     Expanded(
@@ -334,16 +361,28 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                             vertical: 12,
                           ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.inputBorder),
                           ),
-                          prefixIcon: const Icon(Icons.sort, size: 20),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.inputBorder),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.mutedForestGreen,
+                              width: 1.5,
+                            ),
+                          ),
+                          prefixIcon: const Icon(Icons.sort, size: 18),
                         ),
                         items: SortOption.values.map((option) {
                           return DropdownMenuItem(
                             value: option,
                             child: Text(
                               option.shortLabel,
-                              style: const TextStyle(fontSize: 14),
+                              style: AppTextStyles.body.copyWith(fontSize: 14),
                             ),
                           );
                         }).toList(),
@@ -361,7 +400,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
               },
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Content - Real-time product stream with filters
             Expanded(
@@ -370,7 +409,13 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                 builder: (context, snapshot) {
                   // Loading state
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.mutedForestGreen,
+                        ),
+                      ),
+                    );
                   }
 
                   // Error state
@@ -379,12 +424,22 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.error_outline, size: 60, color: Colors.red),
-                          const SizedBox(height: 16),
-                          const Text('Failed to load products'),
-                          const SizedBox(height: 16),
+                          const Icon(
+                            Icons.error_outline,
+                            size: 60,
+                            color: AppColors.error,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            'Failed to load products',
+                            style: AppTextStyles.body,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
                           ElevatedButton(
                             onPressed: () => setState(() {}),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.mutedForestGreen,
+                            ),
                             child: const Text('Retry'),
                           ),
                         ],
@@ -404,20 +459,19 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                           Icon(
                             Icons.search_off,
                             size: 60,
-                            color: Colors.grey[400],
+                            color: AppColors.textSecondary.withOpacity(0.5),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.sm),
                           Text(
                             _hasActiveFilters
                                 ? 'No products match your filters'
                                 : 'No products available',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
+                            style: AppTextStyles.body.copyWith(
+                              color: AppColors.textSecondary,
                             ),
                           ),
                           if (_hasActiveFilters) ...[
-                            const SizedBox(height: 12),
+                            const SizedBox(height: AppSpacing.sm),
                             TextButton(
                               onPressed: () {
                                 setState(() {
@@ -430,7 +484,12 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                                   _searchController.clear();
                                 });
                               },
-                              child: const Text('Clear Filters'),
+                              child: Text(
+                                'Clear Filters',
+                                style: AppTextStyles.body.copyWith(
+                                  color: AppColors.mutedForestGreen,
+                                ),
+                              ),
                             ),
                           ],
                         ],
@@ -442,14 +501,15 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                   return GridView.builder(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.65,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 0.7,
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
                       final product = products[index];
-                      return GestureDetector(
+                      return BuyerProductCard(
+                        product: product,
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -457,7 +517,6 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                             ),
                           );
                         },
-                        child: _BuyerProductCard(product: product),
                       );
                     },
                   );
@@ -466,138 +525,6 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _BuyerProductCard extends StatelessWidget {
-  final ProductModel product;
-
-  const _BuyerProductCard({required this.product});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: Image.network(
-                    product.imageUrl,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stack) => Container(
-                      color: Colors.grey[200],
-                      child: const Center(child: Icon(Icons.broken_image)),
-                    ),
-                  ),
-                ),
-                // Stock badge
-                if (product.stock == 0)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'OUT OF STOCK',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  )
-                else if (product.stock <= 5)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'ONLY ${product.stock} LEFT',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.title,
-                  style: AppTextStyles.bodyBold,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  product.category,
-                  style: AppTextStyles.caption,
-                ),
-                const SizedBox(height: 6),
-                // Rating display
-                if (product.reviewCount > 0)
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 14),
-                      const SizedBox(width: 2),
-                      Text(
-                        product.averageRating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '(${product.reviewCount})',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.currency_rupee, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      product.price.toStringAsFixed(2),
-                      style: AppTextStyles.price,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
