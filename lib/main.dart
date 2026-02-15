@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
@@ -39,6 +40,18 @@ Future<void> main() async {
     // In production, send to crash reporting service
   }
 
+  // Pre-cache Google Fonts to avoid runtime loading issues
+  try {
+    await GoogleFonts.pendingFonts([
+      GoogleFonts.playfairDisplay(),
+      GoogleFonts.inter(),
+    ]);
+  } catch (e) {
+    if (kDebugMode) {
+      debugPrint('Google Fonts pre-caching failed, will use fallback fonts');
+    }
+  }
+
   if (kDebugMode) {
     debugPrint('Starting app...');
   }
@@ -64,6 +77,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        theme: _buildAppTheme(),
         home: const LoginScreen(),
         routes: {
           '/signup': (context) => const SignupScreen(),
@@ -73,6 +87,67 @@ class MyApp extends StatelessWidget {
           '/admin-dashboard': (context) => const AdminDashboard(),
           '/cart': (context) => const CartScreen(),
         },
+      ),
+    );
+  }
+
+  ThemeData _buildAppTheme() {
+    return ThemeData(
+      useMaterial3: true,
+      textTheme: GoogleFonts.interTextTheme(),
+      scaffoldBackgroundColor: const Color(0xFFF6F1E8), // Soft Warm Beige
+      colorScheme: const ColorScheme.light(
+        primary: Color(0xFF2F5D50), // Muted Forest Green
+        secondary: Color(0xFFDCE5DD), // Light Sage Tint
+        surface: Color(0xFFFFFFFF), // White
+        error: Color(0xFFC96C5B), // Muted Terracotta
+        onPrimary: Colors.white,
+        onSecondary: Color(0xFF2E2A26), // Deep Charcoal Brown
+        onSurface: Color(0xFF2E2A26), // Deep Charcoal Brown
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: const Color(0xFFF6F1E8), // Soft Warm Beige
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Color(0xFF2E2A26)), // Deep Charcoal Brown
+        titleTextStyle: GoogleFonts.playfairDisplay(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF2E2A26), // Deep Charcoal Brown
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: const Color(0xFFFFFFFF), // White
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2F5D50), // Muted Forest Green
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFFFFFFFF), // White
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFD9D0C7)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFD9D0C7)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF2F5D50), width: 2),
+        ),
       ),
     );
   }

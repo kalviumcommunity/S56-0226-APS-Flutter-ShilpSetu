@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../utils/number_formatter.dart';
+import '../core/constants/colors.dart';
+import '../core/constants/text_styles.dart';
+import '../widgets/status_badge.dart';
 
-/// List item widget displaying a recent order summary
+/// Earthy Artisan Design System - Recent Order Item
 class RecentOrderItem extends StatelessWidget {
   final OrderModel order;
   final VoidCallback? onTap;
@@ -16,17 +19,17 @@ class RecentOrderItem extends StatelessWidget {
   Color _getStatusColor() {
     switch (order.status) {
       case OrderModel.statusPending:
-        return Colors.orange;
+        return AppColors.warning;
       case OrderModel.statusAccepted:
-        return Colors.blue;
+        return AppColors.mutedForestGreen;
       case OrderModel.statusShipped:
-        return Colors.purple;
+        return AppColors.softMutedGreen;
       case OrderModel.statusDelivered:
-        return Colors.green;
+        return AppColors.success;
       case OrderModel.statusCancelled:
-        return Colors.red;
+        return AppColors.error;
       default:
-        return Colors.grey;
+        return AppColors.textSecondary;
     }
   }
 
@@ -51,20 +54,26 @@ class RecentOrderItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[200]!),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
             // Status Indicator
             Container(
               width: 4,
-              height: 40,
+              height: 48,
               decoration: BoxDecoration(
                 color: _getStatusColor(),
                 borderRadius: BorderRadius.circular(2),
@@ -76,63 +85,67 @@ class RecentOrderItem extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Order #${order.id.substring(0, 8)}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                      Flexible(
+                        child: Text(
+                          'Order #${order.id.substring(0, 8)}',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.darkSlate,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       Text(
                         NumberFormatter.formatCurrency(order.totalAmount),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                        style: AppTextStyles.bodyBold.copyWith(
+                          color: AppColors.forestJade,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor().withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _getStatusLabel(),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: _getStatusColor(),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor().withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _getStatusLabel(),
+                            style: AppTextStyles.caption.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _getStatusColor(),
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
-                      Text(
-                        ' • ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[400],
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          '•',
+                          style: AppTextStyles.caption,
                         ),
                       ),
-                      Text(
-                        NumberFormatter.formatRelativeTime(
-                          order.createdAt.toDate(),
-                        ),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                      Flexible(
+                        child: Text(
+                          NumberFormatter.formatRelativeTime(
+                            order.createdAt.toDate(),
+                          ),
+                          style: AppTextStyles.caption,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -143,10 +156,13 @@ class RecentOrderItem extends StatelessWidget {
 
             // Arrow Icon
             if (onTap != null)
-              Icon(
-                Icons.chevron_right,
-                color: Colors.grey[400],
-                size: 20,
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Icon(
+                  Icons.chevron_right,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
               ),
           ],
         ),
