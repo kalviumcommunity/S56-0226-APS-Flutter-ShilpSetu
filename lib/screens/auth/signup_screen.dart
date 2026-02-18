@@ -8,6 +8,7 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../core/validators/auth_validators.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/dialog_utils.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -32,7 +33,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _createAccount() async {
     final auth = context.read<AuthProvider>();
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     final email = _emailCtrl.text.trim();
     final password = _passCtrl.text;
@@ -41,33 +41,39 @@ class _SignupScreenState extends State<SignupScreen> {
     final role = _selectedRole;
 
     if (name.isEmpty) {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Name is required')),
+      await showAppDialog(
+        context,
+        title: 'Name Required',
+        message: 'Please enter your full name to continue',
       );
       return;
     }
 
     if (role == null) {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Please select a role (Buyer or Seller)')),
+      await showAppDialog(
+        context,
+        title: 'Role Required',
+        message: 'Please select whether you are a Buyer or Seller',
       );
       return;
     }
 
     // Validate email format
     if (!AuthValidators.isValidEmail(email)) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(AuthValidators.getEmailValidationError(email))),
+      await showAppDialog(
+        context,
+        title: 'Invalid Email',
+        message: AuthValidators.getEmailValidationError(email),
       );
       return;
     }
 
     // Validate password strength
     if (!AuthValidators.isValidPassword(password)) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-            content:
-                Text(AuthValidators.getPasswordValidationError(password))),
+      await showAppDialog(
+        context,
+        title: 'Weak Password',
+        message: AuthValidators.getPasswordValidationError(password),
       );
       return;
     }
@@ -81,28 +87,61 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Account created successfully')),
+
+      await showAppDialog(
+        context,
+        title: 'Success',
+        message: 'Your account has been created successfully!\n\nTapping OK will take you to your dashboard.',
+        isError: false,
       );
 
-      // Navigate directly without popping first
-      if (role == 'buyer') {
-        Navigator.pushReplacementNamed(context, '/buyer-dashboard');
-      } else {
-        Navigator.pushReplacementNamed(context, '/seller-dashboard');
+      // Navigate only after the user has dismissed the dialog
+      if (mounted) {
+        if (role == 'buyer') {
+          Navigator.pushReplacementNamed(context, '/buyer-dashboard');
+        } else {
+          Navigator.pushReplacementNamed(context, '/seller-dashboard');
+        }
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      // Use the generic error message from auth provider
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(e.message ?? 'An error occurred. Please try again.')),
-      );
+
+      String errorTitle = 'Signup Failed';
+      String errorMessage = e.message ?? 'An error occurred. Please try again.';
+
+      // Check for specific error codes and provide better messages
+      if (e.code == 'email-already-in-use') {
+        errorTitle = 'Email Already Registered';
+        errorMessage = 'This email is already registered.\n\nPlease use a different email or try logging in.';
+      } else if (e.code == 'invalid-email') {
+        errorTitle = 'Invalid Email';
+        errorMessage = 'The email address is not valid.\n\nPlease check and try again.';
+      } else if (e.code == 'weak-password') {
+        errorTitle = 'Weak Password';
+        errorMessage = 'The password is too weak.\n\nPlease use a password with at least 8 characters.';
+      } else if (e.code == 'operation-not-allowed') {
+        errorTitle = 'Signup Disabled';
+        errorMessage = 'Signup is currently disabled.\n\nPlease try again later.';
+      } else if (e.code == 'network-request-failed' ||
+          errorMessage.toLowerCase().contains('network')) {
+        errorTitle = 'Network Error';
+        errorMessage = 'Cannot connect to the server.\n\nPlease check your internet connection and try again.';
+      }
+
+      await showAppDialog(context, title: errorTitle, message: errorMessage);
     } catch (e) {
       if (!mounted) return;
-      // Never expose full exception details to user
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('An error occurred. Please try again.')),
-      );
+
+      String errorTitle = 'Error';
+      String errorMessage = 'An unexpected error occurred.\n\nPlease try again.';
+
+      if (e.toString().toLowerCase().contains('network') ||
+          e.toString().toLowerCase().contains('socket')) {
+        errorTitle = 'Network Error';
+        errorMessage = 'Cannot connect to the server.\n\nPlease check your internet connection.';
+      }
+
+      await showAppDialog(context, title: errorTitle, message: errorMessage);
     }
   }
 

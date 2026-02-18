@@ -153,77 +153,167 @@ class ProductCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
+                // Rating Section
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.rating.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildStarRating(product.averageRating),
+                      const SizedBox(width: 8),
+                      Text(
+                        product.averageRating > 0
+                            ? '${product.averageRating.toStringAsFixed(1)}'
+                            : 'No rating',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: product.averageRating > 0
+                              ? AppColors.rating
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                      if (product.reviewCount > 0) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '${product.reviewCount} ${product.reviewCount == 1 ? 'review' : 'reviews'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
                 // Price and Actions Row
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Price
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.currency_rupee,
-                              size: 20,
-                              color: AppColors.text,
-                            ),
-                            Text(
-                              product.price.toStringAsFixed(2),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                    // Left side: Price and Stock
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Price
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.currency_rupee,
+                                size: 20,
                                 color: AppColors.text,
                               ),
-                            ),
-                          ],
+                              Text(
+                                product.price.toStringAsFixed(2),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.text,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        // Stock Status
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: product.stock > 0
+                                ? AppColors.success.withOpacity(0.15)
+                                : AppColors.error.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                product.stock > 0
+                                    ? Icons.check_circle
+                                    : Icons.cancel,
+                                size: 16,
+                                color: product.stock > 0
+                                    ? AppColors.success
+                                    : AppColors.error,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                product.stock > 0
+                                    ? 'Stock: ${product.stock}'
+                                    : 'Out of Stock',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: product.stock > 0
+                                      ? AppColors.success
+                                      : AppColors.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(width: 12),
-
-                    // Edit Button
-                    Material(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      child: InkWell(
-                        onTap: onEdit,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.blue,
-                            size: 20,
+                    // Right side: Action Buttons
+                    Row(
+                      children: [
+                        // Edit Button
+                        Material(
+                          color: AppColors.softAccent,
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            onTap: onEdit,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(
+                                Icons.edit,
+                                color: AppColors.primaryAccent,
+                                size: 20,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Delete Button
-                    Material(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      child: InkWell(
-                        onTap: () => _showDeleteConfirmation(context),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          child: const Icon(
-                            Icons.delete,
-                            color: Colors.red,
-                            size: 20,
+                        const SizedBox(width: 8),
+                        // Delete Button
+                        Material(
+                          color: AppColors.error,
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            onTap: () => _showDeleteConfirmation(context),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -312,5 +402,22 @@ class ProductCard extends StatelessWidget {
       final years = (difference.inDays / 365).floor();
       return '$years${years == 1 ? ' year' : ' years'} ago';
     }
+  }
+
+  Widget _buildStarRating(double rating) {
+    return Row(
+      children: [
+        for (int i = 0; i < 5; i++)
+          Icon(
+            i < rating.floor()
+                ? Icons.star
+                : i < rating
+                    ? Icons.star_half
+                    : Icons.star_border,
+            size: 14,
+            color: AppColors.rating,
+          ),
+      ],
+    );
   }
 }

@@ -7,6 +7,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../models/product_model.dart';
 import '../../core/constants/categories.dart';
+import '../../core/constants/colors.dart';
+import '../../core/constants/text_styles.dart';
 
 class AddProductScreen extends StatefulWidget {
   final ProductModel? product;
@@ -166,7 +168,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isEditMode ? 'Product updated successfully!' : 'Product added successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context);
@@ -180,39 +182,104 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to ${isEditMode ? 'update' : 'add'} product: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
     }
   }
 
+  /// Builds a consistent [InputDecoration] for all form fields.
+  InputDecoration _buildInputDecoration({
+    required String labelText,
+    required String hintText,
+    required IconData prefixIcon,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      hintStyle: TextStyle(
+        color: AppColors.mutedWarmGrey.withOpacity(0.6),
+      ),
+      filled: true,
+      fillColor: AppColors.primarySurface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(
+          color: AppColors.inputBorder,
+          width: 1.5,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(
+          color: AppColors.inputBorder,
+          width: 1.5,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(
+          color: AppColors.primaryAccent,
+          width: 2,
+        ),
+      ),
+      prefixIcon: Icon(
+        prefixIcon,
+        color: AppColors.primaryAccent,
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 16,
+        horizontal: 16,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(isEditMode ? 'Edit Product' : 'Add Product'),
-        backgroundColor: Colors.blue,
+        title: Text(
+          isEditMode ? 'Edit Product' : 'Add Product',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.text,
+          ),
+        ),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        foregroundColor: AppColors.text,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Image Section
+              Text(
+                'Product Image',
+                style: AppTextStyles.subtitle,
+              ),
+              const SizedBox(height: 12),
               GestureDetector(
                 onTap: _isUploading ? null : _pickImage,
                 child: Container(
-                  height: 200,
+                  height: 220,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[400]!),
+                    color: AppColors.secondarySurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.softAccent,
+                      width: 2,
+                    ),
                   ),
                   child: _selectedImage != null
                       ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                           child: FutureBuilder<Uint8List>(
                             future: _selectedImage!.readAsBytes(),
                             builder: (context, snapshot) {
@@ -223,131 +290,265 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 );
                               }
                               return const Center(
-                                child: CircularProgressIndicator(),
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppColors.primaryAccent,
+                                  ),
+                                ),
                               );
                             },
                           ),
                         )
                       : isEditMode && widget.product!.imageUrl.isNotEmpty
                           ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                               child: Image.network(
                                 widget.product!.imageUrl,
                                 fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: AppColors.secondarySurface,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        valueColor: const AlwaysStoppedAnimation<Color>(
+                                          AppColors.primaryAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                                 errorBuilder: (context, error, stackTrace) {
-                                  return const Center(
+                                  return Center(
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.add_photo_alternate, size: 50),
-                                        SizedBox(height: 8),
-                                        Text('Tap to change image'),
+                                        Icon(
+                                          Icons.add_photo_alternate,
+                                          size: 60,
+                                          color: AppColors.softAccent,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'Tap to change image',
+                                          style: AppTextStyles.body.copyWith(
+                                            color: AppColors.mutedWarmGrey,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   );
                                 },
                               ),
                             )
-                          : const Center(
+                          : Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_photo_alternate, size: 50, color: Colors.grey),
-                                  SizedBox(height: 8),
-                                  Text('Tap to select image'),
+                                  Icon(
+                                    Icons.add_photo_alternate,
+                                    size: 60,
+                                    color: AppColors.softAccent,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Tap to select image',
+                                    style: AppTextStyles.body.copyWith(
+                                      color: AppColors.mutedWarmGrey,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
+
+              // Product Title
+              Text(
+                'Product Title',
+                style: AppTextStyles.subtitle,
+              ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(
+                decoration: _buildInputDecoration(
                   labelText: 'Product Title',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.title),
+                  hintText: 'Enter product name',
+                  prefixIcon: Icons.title,
                 ),
                 enabled: !_isUploading,
+                style: AppTextStyles.body,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter product title';
                   }
+                  if (value.trim().length < 3) {
+                    return 'Title must be at least 3 characters';
+                  }
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+
+              // Description
+              Text(
+                'Description',
+                style: AppTextStyles.subtitle,
+              ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
+                decoration: _buildInputDecoration(
+                  labelText: 'Product Description',
+                  hintText: 'Describe your product in detail',
+                  prefixIcon: Icons.description,
                 ),
-                maxLines: 3,
+                maxLines: 4,
                 enabled: !_isUploading,
+                style: AppTextStyles.body,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter description';
                   }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Price',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.currency_rupee),
-                ),
-                keyboardType: TextInputType.number,
-                enabled: !_isUploading,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter price';
-                  }
-                  final price = double.tryParse(value.trim());
-                  if (price == null || price <= 0) {
-                    return 'Please enter valid price';
+                  if (value.trim().length < 10) {
+                    return 'Description must be at least 10 characters';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _stockController,
-                decoration: const InputDecoration(
-                  labelText: 'Stock Quantity',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.inventory),
-                  helperText: 'Number of items available',
-                ),
-                keyboardType: TextInputType.number,
-                enabled: !_isUploading,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter stock quantity';
-                  }
-                  final stock = int.tryParse(value.trim());
-                  if (stock == null || stock < 0) {
-                    return 'Stock must be 0 or greater';
-                  }
-                  return null;
-                },
+              const SizedBox(height: 20),
+
+              // Price and Stock Row
+              Row(
+                children: [
+                  // Price
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Price',
+                          style: AppTextStyles.subtitle,
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _priceController,
+                          decoration: _buildInputDecoration(
+                            labelText: 'Price',
+                            hintText: '0.00',
+                            prefixIcon: Icons.currency_rupee,
+                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true),
+                          enabled: !_isUploading,
+                          style: AppTextStyles.body,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter price';
+                            }
+                            final price = double.tryParse(value.trim());
+                            if (price == null || price <= 0) {
+                              return 'Please enter valid price';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Stock
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Stock Quantity',
+                          style: AppTextStyles.subtitle,
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _stockController,
+                          decoration: _buildInputDecoration(
+                            labelText: 'Stock',
+                            hintText: '0',
+                            prefixIcon: Icons.inventory,
+                          ),
+                          keyboardType: TextInputType.number,
+                          enabled: !_isUploading,
+                          style: AppTextStyles.body,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter stock';
+                            }
+                            final stock = int.tryParse(value.trim());
+                            if (stock == null || stock < 0) {
+                              return 'Invalid stock';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+
+              // Category
+              Text(
+                'Category',
+                style: AppTextStyles.subtitle,
+              ),
+              const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: _selectedCategory,
-                decoration: const InputDecoration(
-                  labelText: 'Category',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.category),
+                decoration: InputDecoration(
+                  labelText: 'Select Category',
+                  filled: true,
+                  fillColor: AppColors.primarySurface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.inputBorder,
+                      width: 1.5,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.inputBorder,
+                      width: 1.5,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryAccent,
+                      width: 2,
+                    ),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.category,
+                    color: AppColors.primaryAccent,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 16,
+                  ),
                 ),
                 items: productCategories.map((category) {
                   return DropdownMenuItem(
                     value: category,
-                    child: Text(category),
+                    child: Text(
+                      category,
+                      style: AppTextStyles.body,
+                    ),
                   );
                 }).toList(),
                 onChanged: _isUploading
@@ -364,28 +565,42 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
+
+              // Submit Button
               ElevatedButton(
                 onPressed: _isUploading ? null : _submitProduct,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.blue,
+                  backgroundColor: AppColors.primaryAccent,
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppColors.softAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
                 ),
                 child: _isUploading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
+                        height: 24,
+                        width: 24,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : Text(
                         isEditMode ? 'Update Product' : 'Add Product',
-                        style: const TextStyle(fontSize: 16),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
                       ),
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
