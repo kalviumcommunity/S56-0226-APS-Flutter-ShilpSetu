@@ -275,94 +275,43 @@ class ProductCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(width: 12),
-                    // Right side: Rating and Actions
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    // Right side: Action Buttons
+                    Row(
                       children: [
-                        // Rating
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.rating.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.star,
-                                size: 16,
-                                color: AppColors.rating,
+                        // Edit Button
+                        Material(
+                          color: AppColors.softAccent,
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            onTap: onEdit,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(
+                                Icons.edit,
+                                color: AppColors.primaryAccent,
+                                size: 20,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                product.averageRating > 0
-                                    ? product.averageRating.toStringAsFixed(1)
-                                    : 'No rating',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: product.averageRating > 0
-                                      ? AppColors.rating
-                                      : AppColors.textSecondary,
-                                ),
-                              ),
-                              if (product.reviewCount > 0) ...[
-                                const SizedBox(width: 4),
-                                Text(
-                                  '(${product.reviewCount})',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ],
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        // Action Buttons
-                        Row(
-                          children: [
-                            // Edit Button
-                            Material(
-                              color: Colors.blue.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              child: InkWell(
-                                onTap: onEdit,
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  child: const Icon(
-                                    Icons.edit,
-                                    color: Colors.blue,
-                                    size: 20,
-                                  ),
-                                ),
+                        const SizedBox(width: 8),
+                        // Delete Button
+                        Material(
+                          color: AppColors.error,
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            onTap: () => _showDeleteConfirmation(context),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                                size: 20,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            // Delete Button
-                            Material(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              child: InkWell(
-                                onTap: () => _showDeleteConfirmation(context),
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  child: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ),

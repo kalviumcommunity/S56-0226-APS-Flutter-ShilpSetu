@@ -8,6 +8,7 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../core/validators/auth_validators.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/dialog_utils.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -30,106 +31,6 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _showErrorDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              const Icon(Icons.error_outline, color: AppColors.error, size: 28),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            message,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          backgroundColor: AppColors.card,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'OK',
-                style: TextStyle(
-                  color: AppColors.primaryAccent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showSuccessDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              const Icon(Icons.check_circle, color: AppColors.success, size: 28),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Success',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            message,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          backgroundColor: AppColors.card,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'OK',
-                style: TextStyle(
-                  color: AppColors.primaryAccent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _createAccount() async {
     final auth = context.read<AuthProvider>();
 
@@ -140,24 +41,40 @@ class _SignupScreenState extends State<SignupScreen> {
     final role = _selectedRole;
 
     if (name.isEmpty) {
-      _showErrorDialog('Name Required', 'Please enter your full name to continue');
+      await showAppDialog(
+        context,
+        title: 'Name Required',
+        message: 'Please enter your full name to continue',
+      );
       return;
     }
 
     if (role == null) {
-      _showErrorDialog('Role Required', 'Please select whether you are a Buyer or Seller');
+      await showAppDialog(
+        context,
+        title: 'Role Required',
+        message: 'Please select whether you are a Buyer or Seller',
+      );
       return;
     }
 
     // Validate email format
     if (!AuthValidators.isValidEmail(email)) {
-      _showErrorDialog('Invalid Email', AuthValidators.getEmailValidationError(email));
+      await showAppDialog(
+        context,
+        title: 'Invalid Email',
+        message: AuthValidators.getEmailValidationError(email),
+      );
       return;
     }
 
     // Validate password strength
     if (!AuthValidators.isValidPassword(password)) {
-      _showErrorDialog('Weak Password', AuthValidators.getPasswordValidationError(password));
+      await showAppDialog(
+        context,
+        title: 'Weak Password',
+        message: AuthValidators.getPasswordValidationError(password),
+      );
       return;
     }
 
@@ -170,25 +87,28 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       if (!mounted) return;
-      
-      _showSuccessDialog('Your account has been created successfully!\n\nTapping OK will take you to your dashboard.');
 
-      // Navigate after success
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          if (role == 'buyer') {
-            Navigator.pushReplacementNamed(context, '/buyer-dashboard');
-          } else {
-            Navigator.pushReplacementNamed(context, '/seller-dashboard');
-          }
+      await showAppDialog(
+        context,
+        title: 'Success',
+        message: 'Your account has been created successfully!\n\nTapping OK will take you to your dashboard.',
+        isError: false,
+      );
+
+      // Navigate only after the user has dismissed the dialog
+      if (mounted) {
+        if (role == 'buyer') {
+          Navigator.pushReplacementNamed(context, '/buyer-dashboard');
+        } else {
+          Navigator.pushReplacementNamed(context, '/seller-dashboard');
         }
-      });
+      }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      
+
       String errorTitle = 'Signup Failed';
       String errorMessage = e.message ?? 'An error occurred. Please try again.';
-      
+
       // Check for specific error codes and provide better messages
       if (e.code == 'email-already-in-use') {
         errorTitle = 'Email Already Registered';
@@ -202,26 +122,26 @@ class _SignupScreenState extends State<SignupScreen> {
       } else if (e.code == 'operation-not-allowed') {
         errorTitle = 'Signup Disabled';
         errorMessage = 'Signup is currently disabled.\n\nPlease try again later.';
-      } else if (e.code == 'network-request-failed' || 
+      } else if (e.code == 'network-request-failed' ||
           errorMessage.toLowerCase().contains('network')) {
         errorTitle = 'Network Error';
         errorMessage = 'Cannot connect to the server.\n\nPlease check your internet connection and try again.';
       }
-      
-      _showErrorDialog(errorTitle, errorMessage);
+
+      await showAppDialog(context, title: errorTitle, message: errorMessage);
     } catch (e) {
       if (!mounted) return;
-      
+
       String errorTitle = 'Error';
       String errorMessage = 'An unexpected error occurred.\n\nPlease try again.';
-      
+
       if (e.toString().toLowerCase().contains('network') ||
           e.toString().toLowerCase().contains('socket')) {
         errorTitle = 'Network Error';
         errorMessage = 'Cannot connect to the server.\n\nPlease check your internet connection.';
       }
-      
-      _showErrorDialog(errorTitle, errorMessage);
+
+      await showAppDialog(context, title: errorTitle, message: errorMessage);
     }
   }
 

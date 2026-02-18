@@ -168,7 +168,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isEditMode ? 'Product updated successfully!' : 'Product added successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context);
@@ -182,11 +182,57 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to ${isEditMode ? 'update' : 'add'} product: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
     }
+  }
+
+  /// Builds a consistent [InputDecoration] for all form fields.
+  InputDecoration _buildInputDecoration({
+    required String labelText,
+    required String hintText,
+    required IconData prefixIcon,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      hintStyle: TextStyle(
+        color: AppColors.mutedWarmGrey.withOpacity(0.6),
+      ),
+      filled: true,
+      fillColor: AppColors.primarySurface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(
+          color: AppColors.inputBorder,
+          width: 1.5,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(
+          color: AppColors.inputBorder,
+          width: 1.5,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(
+          color: AppColors.primaryAccent,
+          width: 2,
+        ),
+      ),
+      prefixIcon: Icon(
+        prefixIcon,
+        color: AppColors.primaryAccent,
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 16,
+        horizontal: 16,
+      ),
+    );
   }
 
   @override
@@ -259,6 +305,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               child: Image.network(
                                 widget.product!.imageUrl,
                                 fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: AppColors.secondarySurface,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        valueColor: const AlwaysStoppedAnimation<Color>(
+                                          AppColors.primaryAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                                 errorBuilder: (context, error, stackTrace) {
                                   return Center(
                                     child: Column(
@@ -313,43 +376,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _titleController,
-                decoration: InputDecoration(
+                decoration: _buildInputDecoration(
                   labelText: 'Product Title',
                   hintText: 'Enter product name',
-                  hintStyle: TextStyle(
-                    color: AppColors.mutedWarmGrey.withOpacity(0.6),
-                  ),
-                  filled: true,
-                  fillColor: AppColors.primarySurface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.inputBorder,
-                      width: 1.5,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.inputBorder,
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primaryAccent,
-                      width: 2,
-                    ),
-                  ),
-                  prefixIcon: Icon(
-                    Icons.title,
-                    color: AppColors.primaryAccent,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 16,
-                  ),
+                  prefixIcon: Icons.title,
                 ),
                 enabled: !_isUploading,
                 style: AppTextStyles.body,
@@ -373,43 +403,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _descriptionController,
-                decoration: InputDecoration(
+                decoration: _buildInputDecoration(
                   labelText: 'Product Description',
                   hintText: 'Describe your product in detail',
-                  hintStyle: TextStyle(
-                    color: AppColors.mutedWarmGrey.withOpacity(0.6),
-                  ),
-                  filled: true,
-                  fillColor: AppColors.primarySurface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.inputBorder,
-                      width: 1.5,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.inputBorder,
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primaryAccent,
-                      width: 2,
-                    ),
-                  ),
-                  prefixIcon: Icon(
-                    Icons.description,
-                    color: AppColors.primaryAccent,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 16,
-                  ),
+                  prefixIcon: Icons.description,
                 ),
                 maxLines: 4,
                 enabled: !_isUploading,
@@ -441,43 +438,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _priceController,
-                          decoration: InputDecoration(
+                          decoration: _buildInputDecoration(
                             labelText: 'Price',
                             hintText: '0.00',
-                            hintStyle: TextStyle(
-                              color: AppColors.mutedWarmGrey.withOpacity(0.6),
-                            ),
-                            filled: true,
-                            fillColor: AppColors.primarySurface,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.inputBorder,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.inputBorder,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.primaryAccent,
-                                width: 2,
-                              ),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.currency_rupee,
-                              color: AppColors.primaryAccent,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                              horizontal: 16,
-                            ),
+                            prefixIcon: Icons.currency_rupee,
                           ),
                           keyboardType:
                               const TextInputType.numberWithOptions(decimal: true),
@@ -510,43 +474,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _stockController,
-                          decoration: InputDecoration(
+                          decoration: _buildInputDecoration(
                             labelText: 'Stock',
                             hintText: '0',
-                            hintStyle: TextStyle(
-                              color: AppColors.mutedWarmGrey.withOpacity(0.6),
-                            ),
-                            filled: true,
-                            fillColor: AppColors.primarySurface,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.inputBorder,
-                                width: 1.5,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.inputBorder,
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.primaryAccent,
-                                width: 2,
-                              ),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.inventory,
-                              color: AppColors.primaryAccent,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                              horizontal: 16,
-                            ),
+                            prefixIcon: Icons.inventory,
                           ),
                           keyboardType: TextInputType.number,
                           enabled: !_isUploading,

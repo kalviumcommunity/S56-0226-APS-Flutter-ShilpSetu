@@ -67,7 +67,7 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to update order: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -91,7 +91,8 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
             ),
             child: const Text('Yes, Cancel Order'),
           ),
@@ -108,7 +109,7 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Order cancelled successfully. Stock restored.'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -120,7 +121,7 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to cancel order: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -176,30 +177,30 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
   Color _getPaymentStatusColor(String paymentStatus) {
     switch (paymentStatus.toLowerCase()) {
       case 'pending':
-        return Colors.orange;
+        return AppColors.warning;
       case 'paid':
-        return Colors.green;
+        return AppColors.success;
       case 'failed':
-        return Colors.red;
+        return AppColors.error;
       default:
-        return Colors.grey;
+        return AppColors.textSecondary;
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
-        return Colors.orange;
+        return AppColors.warning;
       case 'accepted':
-        return Colors.blue;
+        return AppColors.primaryAccent;
       case 'shipped':
-        return Colors.purple;
+        return AppColors.mutedGold;
       case 'delivered':
-        return Colors.green;
+        return AppColors.success;
       case 'cancelled':
-        return Colors.red;
+        return AppColors.error;
       default:
-        return Colors.grey;
+        return AppColors.textSecondary;
     }
   }
 
@@ -214,14 +215,14 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 60, color: Colors.red),
+            const Icon(Icons.error_outline, size: 60, color: AppColors.error),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red),
+                style: const TextStyle(color: AppColors.error),
               ),
             ),
             const SizedBox(height: 16),
@@ -239,26 +240,26 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.shopping_bag_outlined,
               size: 80,
-              color: Colors.grey[400],
+              color: AppColors.divider,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No orders yet',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Orders from buyers will appear here',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -371,14 +372,38 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: 60,
+                            height: 60,
+                            color: AppColors.secondarySurface,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  AppColors.primaryAccent,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                         errorBuilder: (context, error, stack) => Container(
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            color: Colors.grey[200],
+                            color: AppColors.secondarySurface,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.broken_image, size: 28),
+                          child: const Icon(
+                            Icons.broken_image,
+                            size: 28,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ),
                     ),
@@ -451,16 +476,16 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: AppColors.secondarySurface,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: AppColors.divider),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.person, size: 16, color: Colors.grey),
+                    const Icon(Icons.person, size: 16, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Text(
                       order.shippingAddress!['fullName'] ?? '',
@@ -471,7 +496,7 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.phone, size: 16, color: Colors.grey),
+                    const Icon(Icons.phone, size: 16, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Text(order.shippingAddress!['phoneNumber'] ?? ''),
                   ],
@@ -480,7 +505,7 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                    const Icon(Icons.location_on, size: 16, color: AppColors.textSecondary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -513,7 +538,7 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                       Icon(
                         _getPaymentIcon(order.paymentMethod),
                         size: 16,
-                        color: Colors.grey[700],
+                        color: AppColors.textSecondary,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -586,7 +611,8 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
               icon: const Icon(Icons.check_circle_outline),
               label: const Text('Accept'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: AppColors.primaryAccent,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -598,8 +624,8 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
               icon: const Icon(Icons.cancel_outlined),
               label: const Text('Cancel'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -616,7 +642,8 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
               icon: const Icon(Icons.local_shipping),
               label: const Text('Mark as Shipped'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
+                backgroundColor: AppColors.mutedGold,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -629,8 +656,8 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
               icon: const Icon(Icons.cancel_outlined),
               label: const Text('Cancel Order'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -645,7 +672,8 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
           icon: const Icon(Icons.done_all),
           label: const Text('Mark as Delivered'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
+            foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
         ),
