@@ -28,25 +28,70 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.error, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.text,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: AppColors.card,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  color: AppColors.primaryAccent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _doLogin() async {
     final auth = context.read<app_auth.AuthProvider>();
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     final email = _emailCtrl.text.trim();
     final password = _passCtrl.text;
 
     // Validate email format
     if (!AuthValidators.isValidEmail(email)) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(AuthValidators.getEmailValidationError(email))),
-      );
+      _showErrorDialog('Invalid Email', AuthValidators.getEmailValidationError(email));
       return;
     }
 
     if (password.isEmpty) {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Password is required')),
-      );
+      _showErrorDialog('Password Required', 'Please enter your password to continue');
       return;
     }
 
@@ -67,56 +112,56 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacementNamed(context, '/seller-dashboard');
         } else {
           // Fallback if role is unknown or missing (e.g. Firestore read failed)
-          scaffoldMessenger.showSnackBar(
-            const SnackBar(
-              content: Text('Offline Mode: Could not fetch role. Defaulting to Buyer Dashboard.'),
-              duration: Duration(seconds: 4),
-            ),
+          _showErrorDialog(
+            'Role Not Found',
+            'Could not fetch your role. Defaulting to Buyer Dashboard.',
           );
-          
           Navigator.pushReplacementNamed(context, '/buyer-dashboard');
         }
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       
-      // Check for network errors
+      String errorTitle = 'Login Failed';
       String errorMessage = e.message ?? 'An error occurred. Please try again.';
-      if (e.code == 'network-request-failed' || 
+      
+      // Check for specific error codes and provide better messages
+      if (e.code == 'user-not-found') {
+        errorTitle = 'Account Not Found';
+        errorMessage = 'No account found with this email address.\n\nPlease sign up to create an account.';
+      } else if (e.code == 'wrong-password') {
+        errorTitle = 'Invalid Password';
+        errorMessage = 'The password you entered is incorrect.\n\nPlease try again.';
+      } else if (e.code == 'invalid-email') {
+        errorTitle = 'Invalid Email';
+        errorMessage = 'The email address is not valid.\n\nPlease check and try again.';
+      } else if (e.code == 'user-disabled') {
+        errorTitle = 'Account Disabled';
+        errorMessage = 'This account has been disabled.\n\nPlease contact support for help.';
+      } else if (e.code == 'too-many-requests') {
+        errorTitle = 'Too Many Login Attempts';
+        errorMessage = 'Too many failed login attempts.\n\nPlease try again later.';
+      } else if (e.code == 'network-request-failed' || 
           errorMessage.toLowerCase().contains('network')) {
-        errorMessage = '⚠️ Network Error: Cannot reach Firebase servers.\n\n'
-            'Please check:\n'
-            '• Emulator internet connection\n'
-            '• Try restarting emulator with: emulator -dns-server 8.8.8.8\n'
-            '• Or use a physical device for testing';
+        errorTitle = 'Network Error';
+        errorMessage = 'Cannot connect to the server.\n\nPlease check your internet connection and try again.';
       }
       
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          duration: const Duration(seconds: 6),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showErrorDialog(errorTitle, errorMessage);
     } catch (e) {
       if (!mounted) return;
       
-      // Check if it's a network-related error
-      String errorMessage = 'An error occurred. Please try again.';
+      String errorTitle = 'Error';
+      String errorMessage = 'An unexpected error occurred.\n\nPlease try again.';
+      
       if (e.toString().toLowerCase().contains('network') ||
           e.toString().toLowerCase().contains('socket') ||
           e.toString().toLowerCase().contains('host lookup')) {
-        errorMessage = '⚠️ Network Error: Cannot connect to servers.\n\n'
-            'Emulator network issue detected. See EMULATOR_NETWORK_FIX.md for solutions.';
+        errorTitle = 'Network Error';
+        errorMessage = 'Cannot connect to the server.\n\nPlease check your internet connection.';
       }
       
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          duration: const Duration(seconds: 6),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showErrorDialog(errorTitle, errorMessage);
     }
   }
 
