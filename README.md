@@ -1,6 +1,6 @@
 # 🎨 ShilpSetu
 
-A Vocal-for-Local Digital Storefront for Artisans🛍️
+A Vocal-for-Local Digital Marketplace for Artisans 🛍️
 
 ---
 
@@ -53,15 +53,16 @@ ShilpSetu provides a lightweight, mobile-first digital storefront that allows ar
 
 ## 🎯 MVP Scope
 
-### ✅ Included in Phase 1
+### ✅ Implemented Features
 
-* Firebase Authentication
-* Artisan and buyer roles
-* Product listing with images and descriptions
-* Cart and quantity-based ordering
-* Order placement and status management
-* Cloud Firestore real-time database
-* Firebase Storage for image uploads
+* **Authentication System**: Firebase Auth with role-based routing (buyer/seller)
+* **Seller Dashboard**: Add, edit, delete products with image upload
+* **Buyer Dashboard**: Browse products with pagination and infinite scroll
+* **Product Management**: Full CRUD operations with Cloudinary image storage
+* **Shopping Cart**: Add/remove items, quantity management
+* **Order System**: Complete order placement with cart-to-order conversion
+* **Data Persistence**: Firestore real-time database with offline support
+* **State Management**: Provider pattern for auth, products, and cart
 
 ### 🚀 Planned for Phase 2
 
@@ -102,33 +103,47 @@ ShilpSetu provides a lightweight, mobile-first digital storefront that allows ar
 lib/
 │
 ├── main.dart
-├── auth/
-│   ├── login_screen.dart
-│   └── signup_screen.dart
+├── firebase_options.dart
 │
-├── home/
-│   ├── home_screen.dart
-│   └── product_card.dart
-│
-├── cart/
-│   ├── cart_screen.dart
-│   └── cart_provider.dart
-│
-├── orders/
-│   └── orders_screen.dart
+├── screens/
+│   ├── auth/
+│   │   ├── login_screen.dart
+│   │   └── signup_screen.dart
+│   ├── buyer/
+│   │   ├── buyer_dashboard.dart
+│   │   ├── product_detail_screen.dart
+│   │   ├── cart_screen.dart
+│   │   └── order_success_screen.dart
+│   └── seller/
+│       ├── seller_dashboard.dart
+│       └── add_product_screen.dart
 │
 ├── models/
-│   ├── product_model.dart
 │   ├── user_model.dart
+│   ├── product_model.dart
+│   ├── cart_item.dart
 │   └── order_model.dart
 │
-├── services/
-│   ├── auth_service.dart
-│   ├── firestore_service.dart
-│   └── cloudinary_service.dart
+├── providers/
+│   ├── auth_provider.dart
+│   ├── product_provider.dart
+│   └── cart_provider.dart
 │
-└── providers/
-    └── app_provider.dart
+├── services/
+│   ├── cloudinary_service.dart
+│   ├── product_service.dart
+│   └── order_service.dart
+│
+├── widgets/
+│   ├── custom_button.dart
+│   ├── custom_textfield.dart
+│   └── product_card.dart
+│
+└── core/
+    ├── config/
+    ├── constants/
+    ├── services/
+    └── validators/
 ```
 
 ---
@@ -151,12 +166,12 @@ flutter doctor
 ---
 
 ## ⚙️ Setup Instructions
-
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/S56-0226-APS-Flutter-ShilpSetu.git
+git clone https://github.com/ATHARVA279/S56-0226-APS-Flutter-ShilpSetu.git
 cd S56-0226-APS-Flutter-ShilpSetu
+```S56-0226-APS-Flutter-ShilpSetu
 ```
 
 ### Step 2: Install Dependencies
@@ -177,16 +192,18 @@ flutter pub get
 ```plaintext
 android/app/
 ```
-
-### Step 4: Cloudinary Configuration
+### Step 4: Environment Configuration
 
 * Create a Cloudinary account at https://cloudinary.com
 * Get your Cloud Name and create an Upload Preset (unsigned)
-* Update credentials in `lib/services/cloudinary_service.dart`:
+* Update credentials in `lib/core/config/env.dart`:
 
 ```dart
-static const String cloudName = 'YOUR_CLOUD_NAME';
-static const String uploadPreset = 'YOUR_UPLOAD_PRESET';
+class Environment {
+  static const String cloudinaryCloudName = 'YOUR_CLOUD_NAME';
+  static const String cloudinaryUploadPreset = 'YOUR_UPLOAD_PRESET';
+}
+```tic const String uploadPreset = 'YOUR_UPLOAD_PRESET';
 ```
 
 ---
@@ -216,11 +233,15 @@ The APK will be generated in:
 ```plaintext
 build/app/outputs/flutter-apk/
 ```
+## 🧪 Testing
 
----
+The application has been thoroughly tested with:
 
-## 🧪 Testing Strategy
-
+* **Authentication Flow**: Login/signup with validation and role-based routing
+* **Product Management**: CRUD operations for sellers with image uploads
+* **Shopping Experience**: Cart management and order placement
+* **Real-time Updates**: Firestore synchronization and offline persistence
+* **Error Handling**: Graceful error handling with user feedback
 * Widget tests for UI components
 * Manual testing for authentication, product creation, cart flow, and order placement
 * Firestore data validation and real-time updates
@@ -229,13 +250,13 @@ build/app/outputs/flutter-apk/
 
 ## 👥 Team Collaboration Guidelines
 
-* 🌿 Feature-based Git branching strategy
-* Pull Requests required before merging into main branch
-* Main branch remains stable and demo-ready
-* Regular team syncs to track progress and resolve blockers
+## 📊 Project Status
 
----
-
+* ✅ **Complete MVP Implementation**: All core features functional
+* ✅ **Firebase Integration**: Auth, Firestore, and Cloudinary working seamlessly  
+* ✅ **Production Ready**: Clean codebase with proper architecture
+* ✅ **Mobile Optimized**: Responsive UI with smooth user experience
+* ✅ **Scalable Architecture**: Provider pattern with clean separation of concerns
 ## 📊 Success Metrics
 
 * ✅ All MVP features implemented and functional.
@@ -252,12 +273,6 @@ build/app/outputs/flutter-apk/
 * 🌍 Multi-language and regional language support
 * 🎤 Audio or video-based artisan storytelling
 * 📍 Location-based discovery of local crafts
-
----
-
-## 📄 License
-
-This project is developed for academic and learning purposes.
 
 ---
 
