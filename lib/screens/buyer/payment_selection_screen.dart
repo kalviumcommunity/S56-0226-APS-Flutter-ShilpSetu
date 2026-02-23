@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
-import '../../core/constants/text_styles.dart';
 
 class PaymentSelectionScreen extends StatefulWidget {
   final double totalAmount;

@@ -90,6 +90,8 @@ class SellerService {
     required String sellerId,
     String? bio,
     String? city,
+    double? locationLat,
+    double? locationLng,
     XFile? profileImage,
   }) async {
     try {
@@ -109,6 +111,11 @@ class SellerService {
       // Add city if provided
       if (city != null) {
         updateData['city'] = city;
+      }
+
+      if (locationLat != null && locationLng != null) {
+        updateData['locationLat'] = locationLat;
+        updateData['locationLng'] = locationLng;
       }
 
       if (updateData.isEmpty) {

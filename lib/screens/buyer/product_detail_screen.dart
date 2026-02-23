@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/product_model.dart';
 import '../../models/review_model.dart';
 import '../../providers/cart_provider.dart';
@@ -15,6 +17,28 @@ class ProductDetailScreen extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return DateFormat('MMM dd, yyyy').format(date);
+  }
+
+  bool get _hasOriginLocation =>
+      product.originLat != null && product.originLng != null;
+
+  Future<void> _openInGoogleMaps(BuildContext context) async {
+    if (!_hasOriginLocation) return;
+
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${product.originLat},${product.originLng}',
+    );
+
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open Google Maps')),
+      );
+    }
   }
 
   @override
@@ -115,6 +139,76 @@ class ProductDetailScreen extends StatelessWidget {
                 product.description,
                 style: const TextStyle(fontSize: 16, height: 1.4),
               ),
+
+              if (_hasOriginLocation) ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Origin',
+                  style: AppTextStyles.subtitle,
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, color: AppColors.primaryAccent, size: 18),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              product.originCity ?? 'Craft location',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => _openInGoogleMaps(context),
+                            child: const Text('Open in Maps'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          height: 180,
+                          width: double.infinity,
+                          child: GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                              target: LatLng(product.originLat!, product.originLng!),
+                              zoom: 13,
+                            ),
+                            markers: {
+                              Marker(
+                                markerId: MarkerId('origin_${product.id}'),
+                                position: LatLng(product.originLat!, product.originLng!),
+                                infoWindow: InfoWindow(
+                                  title: product.originCity ?? product.title,
+                                ),
+                              ),
+                            },
+                            mapToolbarEnabled: false,
+                            zoomControlsEnabled: false,
+                            scrollGesturesEnabled: false,
+                            rotateGesturesEnabled: false,
+                            tiltGesturesEnabled: false,
+                            myLocationButtonEnabled: false,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 16),
               Text(

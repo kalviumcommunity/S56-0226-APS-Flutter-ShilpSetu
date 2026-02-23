@@ -3,7 +3,6 @@ import '../models/order_model.dart';
 import '../utils/number_formatter.dart';
 import '../core/constants/colors.dart';
 import '../core/constants/text_styles.dart';
-import '../widgets/status_badge.dart';
 
 /// Earthy Artisan Design System - Recent Order Item
 class RecentOrderItem extends StatelessWidget {

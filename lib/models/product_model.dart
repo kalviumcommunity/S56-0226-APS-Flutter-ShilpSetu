@@ -14,6 +14,9 @@ class ProductModel {
   final int stock;
   final double averageRating;
   final int reviewCount;
+  final double? originLat;
+  final double? originLng;
+  final String? originCity;
 
   ProductModel({
     required this.id,
@@ -29,6 +32,9 @@ class ProductModel {
     this.stock = 0,
     this.averageRating = 0.0,
     this.reviewCount = 0,
+    this.originLat,
+    this.originLng,
+    this.originCity,
   });
 
   factory ProductModel.fromMap(Map<String, dynamic> map, String documentId) {
@@ -46,6 +52,9 @@ class ProductModel {
       stock: map['stock'] ?? 0,
       averageRating: (map['averageRating'] ?? 0).toDouble(),
       reviewCount: map['reviewCount'] ?? 0,
+      originLat: (map['originLat'] as num?)?.toDouble(),
+      originLng: (map['originLng'] as num?)?.toDouble(),
+      originCity: map['originCity'] as String?,
     );
   }
 
@@ -63,6 +72,9 @@ class ProductModel {
       'stock': stock,
       'averageRating': averageRating,
       'reviewCount': reviewCount,
+      if (originLat != null) 'originLat': originLat,
+      if (originLng != null) 'originLng': originLng,
+      if (originCity != null) 'originCity': originCity,
     };
   }
 

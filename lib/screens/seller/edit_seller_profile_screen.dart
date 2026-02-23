@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../models/user_model.dart';
 import '../../services/seller_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/constants/colors.dart';
@@ -18,10 +20,13 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
+  double? _locationLat;
+  double? _locationLng;
 
   XFile? _selectedImage;
   bool _isLoading = false;
   bool _isInitialized = false;
+  bool _isFindingLocation = false;
 
   @override
   void didChangeDependencies() {
@@ -32,6 +37,8 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
       if (user != null) {
         _bioController.text = user.bio ?? '';
         _cityController.text = user.city ?? '';
+        _locationLat = user.locationLat;
+        _locationLng = user.locationLng;
       }
       _isInitialized = true;
     }
@@ -93,6 +100,8 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
         sellerId: sellerId,
         bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
         city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
+        locationLat: _locationLat,
+        locationLng: _locationLng,
         profileImage: _selectedImage,
       );
 
@@ -121,6 +130,96 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _findCurrentLocation() async {
+    setState(() {
+      _isFindingLocation = true;
+    });
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location services are disabled. Please enable them.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location permission is required to use Find Me'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      String? city;
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        city = place.locality?.trim().isNotEmpty == true
+            ? place.locality!.trim()
+            : (place.subAdministrativeArea?.trim().isNotEmpty == true
+                ? place.subAdministrativeArea!.trim()
+                : place.administrativeArea?.trim());
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _locationLat = position.latitude;
+        _locationLng = position.longitude;
+        if (city != null && city.isNotEmpty) {
+          _cityController.text = city;
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location updated from current position'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to fetch current location: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFindingLocation = false;
         });
       }
     }
@@ -242,6 +341,55 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.white,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Artisan Location
+            const Text(
+              'Artisan Location',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.inputBorder),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (_locationLat != null && _locationLng != null)
+                        ? (_cityController.text.trim().isNotEmpty
+                            ? 'Current city: ${_cityController.text.trim()}'
+                            : 'Location found')
+                        : 'No location found',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _isFindingLocation ? null : _findCurrentLocation,
+                    icon: _isFindingLocation
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.my_location),
+                    label: Text(_isFindingLocation ? 'Finding...' : 'Find Me'),
+                  ),
+                ],
               ),
             ),
 
