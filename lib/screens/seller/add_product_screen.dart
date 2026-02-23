@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +9,6 @@ import '../../providers/product_provider.dart';
 import '../../models/product_model.dart';
 import '../../core/constants/categories.dart';
 import '../../core/constants/colors.dart';
-import '../../core/constants/text_styles.dart';
 
 class AddProductScreen extends StatefulWidget {
   final ProductModel? product;
@@ -25,7 +25,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
-  
+
   final ImagePicker _picker = ImagePicker();
   XFile? _selectedImage;
   String? _selectedCategory;
@@ -41,8 +41,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _descriptionController.text = widget.product!.description;
       _priceController.text = widget.product!.price.toString();
       _stockController.text = widget.product!.stock.toString();
-      
-      // Handle legacy categories - find matching category or default to first
       final productCategory = widget.product!.category;
       final matchingCategory = productCategories.firstWhere(
         (cat) => cat.toLowerCase() == productCategory.toLowerCase(),
@@ -66,28 +64,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<bool> _requestPermissions() async {
     final status = await Permission.photos.request();
-    if (status.isGranted) {
-      return true;
-    } else if (status.isDenied) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Photo permission is required')),
-        );
-      }
-      return false;
-    } else if (status.isPermanentlyDenied) {
+    if (status.isGranted) return true;
+    if (status.isPermanentlyDenied) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please enable photo permission in settings'),
-            action: SnackBarAction(
-              label: 'Settings',
-              onPressed: openAppSettings,
-            ),
+            action: SnackBarAction(label: 'Settings', onPressed: openAppSettings),
           ),
         );
       }
-      return false;
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo permission is required')),
+      );
     }
     return false;
   }
@@ -104,43 +94,35 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
 
     if (image != null) {
-      setState(() {
-        _selectedImage = image;
-      });
+      setState(() => _selectedImage = image);
     }
   }
 
   Future<void> _submitProduct() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
+    if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a category')),
       );
       return;
     }
-
     if (!isEditMode && _selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an image')),
+        const SnackBar(content: Text('Please select a product image')),
       );
       return;
     }
 
-    try {
-      setState(() {
-        _isUploading = true;
-      });
+    setState(() => _isUploading = true);
 
+    try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final productProvider = Provider.of<ProductProvider>(context, listen: false);
+      final productProvider =
+          Provider.of<ProductProvider>(context, listen: false);
       final currentUser = authProvider.currentUser!;
       final sellerProfile = authProvider.userModel;
 
       if (isEditMode) {
-        // Update existing product
         await productProvider.updateProduct(
           productId: widget.product!.id,
           sellerId: currentUser.uid,
@@ -155,10 +137,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
           imageFile: _selectedImage,
         );
       } else {
-        // Add new product
         await productProvider.addProduct(
           sellerId: currentUser.uid,
-          sellerName: currentUser.email ?? 'Unknown Seller',
+          sellerName:
+              (sellerProfile?.name != null && sellerProfile!.name.isNotEmpty)
+                  ? sellerProfile.name
+                  : (currentUser.email ?? 'Unknown Seller'),
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
           price: double.parse(_priceController.text.trim()),
@@ -174,21 +158,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEditMode ? 'Product updated successfully!' : 'Product added successfully!'),
+            content: Text(isEditMode
+                ? 'Product updated successfully!'
+                : 'Product listed successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
-      setState(() {
-        _isUploading = false;
-      });
-
+      setState(() => _isUploading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to ${isEditMode ? 'update' : 'add'} product: $e'),
+            content: Text('Failed: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -196,48 +179,80 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
-  /// Builds a consistent [InputDecoration] for all form fields.
-  InputDecoration _buildInputDecoration({
-    required String labelText,
-    required String hintText,
-    required IconData prefixIcon,
+  // ── Shared input decoration ─────────────────────────────────────────────────
+  InputDecoration _inputDeco({
+    required String label,
+    required String hint,
+    required IconData icon,
+    String? suffix,
   }) {
     return InputDecoration(
-      labelText: labelText,
-      hintText: hintText,
-      hintStyle: TextStyle(
-        color: AppColors.mutedWarmGrey.withOpacity(0.6),
-      ),
+      labelText: label,
+      hintText: hint,
+      hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.5)),
       filled: true,
       fillColor: AppColors.primarySurface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-          color: AppColors.inputBorder,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.5),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-          color: AppColors.inputBorder,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-          color: AppColors.primaryAccent,
-          width: 2,
+        borderSide: const BorderSide(color: AppColors.primaryAccent, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.error, width: 2),
+      ),
+      prefixIcon: Icon(icon, color: AppColors.primaryAccent, size: 20),
+      suffixText: suffix,
+      suffixStyle: GoogleFonts.inter(
+          fontSize: 13, color: AppColors.textSecondary),
+      contentPadding:
+          const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+    );
+  }
+
+  // ── Section card wrapper ────────────────────────────────────────────────────
+  Widget _sectionCard({required String title, required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.primarySurface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
         ),
-      ),
-      prefixIcon: Icon(
-        prefixIcon,
-        color: AppColors.primaryAccent,
-      ),
-      contentPadding: const EdgeInsets.symmetric(
-        vertical: 16,
-        horizontal: 16,
       ),
     );
   }
@@ -247,370 +262,339 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(
-          isEditMode ? 'Edit Product' : 'Add Product',
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.text,
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isEditMode ? 'Edit Product' : 'New Product',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            Text(
+              isEditMode ? 'Update your listing' : 'List a new item',
+              style: GoogleFonts.inter(
+                  fontSize: 12, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+      // ── Sticky save button ────────────────────────────────────────────────
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: SizedBox(
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isUploading ? null : _submitProduct,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryAccent,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.softAccent,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: _isUploading
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          isEditMode ? 'Updating…' : 'Listing…',
+                          style: GoogleFonts.inter(
+                              fontSize: 15, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    )
+                  : Text(
+                      isEditMode ? 'Update Product' : 'List Product',
+                      style: GoogleFonts.inter(
+                          fontSize: 15, fontWeight: FontWeight.w600),
+                    ),
+            ),
           ),
         ),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        foregroundColor: AppColors.text,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Image Section
-              Text(
-                'Product Image',
-                style: AppTextStyles.subtitle,
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          children: [
+            // ── Image picker ───────────────────────────────────────────────
+            _sectionCard(
+              title: 'PRODUCT PHOTO',
+              child: GestureDetector(
                 onTap: _isUploading ? null : _pickImage,
-                child: Container(
-                  height: 220,
-                  decoration: BoxDecoration(
-                    color: AppColors.secondarySurface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.softAccent,
-                      width: 2,
-                    ),
-                  ),
-                  child: _selectedImage != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: FutureBuilder<Uint8List>(
-                            future: _selectedImage!.readAsBytes(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData) {
-                                return Image.memory(
-                                  snapshot.data!,
-                                  fit: BoxFit.cover,
-                                );
-                              }
-                              return const Center(
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.primaryAccent,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Image or placeholder
+                      Container(
+                        height: 210,
+                        width: double.infinity,
+                        color: AppColors.secondarySurface,
+                        child: _selectedImage != null
+                            ? FutureBuilder<Uint8List>(
+                                future: _selectedImage!.readAsBytes(),
+                                builder: (_, snap) {
+                                  if (snap.hasData) {
+                                    return Image.memory(snap.data!,
+                                        fit: BoxFit.cover);
+                                  }
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                },
+                              )
+                            : isEditMode &&
+                                    widget.product!.imageUrl.isNotEmpty
+                                ? Image.network(
+                                    widget.product!.imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        _imagePlaceholder(),
+                                    loadingBuilder: (_, child, progress) {
+                                      if (progress == null) return child;
+                                      return const Center(
+                                          child:
+                                              CircularProgressIndicator());
+                                    },
+                                  )
+                                : _imagePlaceholder(),
+                      ),
+
+                      // Edit overlay (shown when image already selected)
+                      if (_selectedImage != null ||
+                          (isEditMode &&
+                              widget.product!.imageUrl.isNotEmpty))
+                        Positioned(
+                          bottom: 10,
+                          right: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.edit,
+                                    size: 13, color: Colors.white),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Change Photo',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        )
-                      : isEditMode && widget.product!.imageUrl.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
-                              child: Image.network(
-                                widget.product!.imageUrl,
-                                fit: BoxFit.cover,
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Container(
-                                    color: AppColors.secondarySurface,
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                        value: loadingProgress.expectedTotalBytes != null
-                                            ? loadingProgress.cumulativeBytesLoaded /
-                                                loadingProgress.expectedTotalBytes!
-                                            : null,
-                                        valueColor: const AlwaysStoppedAnimation<Color>(
-                                          AppColors.primaryAccent,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.add_photo_alternate,
-                                          size: 60,
-                                          color: AppColors.softAccent,
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          'Tap to change image',
-                                          style: AppTextStyles.body.copyWith(
-                                            color: AppColors.mutedWarmGrey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            )
-                          : Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.add_photo_alternate,
-                                    size: 60,
-                                    color: AppColors.softAccent,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'Tap to select image',
-                                    style: AppTextStyles.body.copyWith(
-                                      color: AppColors.mutedWarmGrey,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              ],
                             ),
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Product Title
-              Text(
-                'Product Title',
-                style: AppTextStyles.subtitle,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _titleController,
-                decoration: _buildInputDecoration(
-                  labelText: 'Product Title',
-                  hintText: 'Enter product name',
-                  prefixIcon: Icons.title,
-                ),
-                enabled: !_isUploading,
-                style: AppTextStyles.body,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter product title';
-                  }
-                  if (value.trim().length < 3) {
-                    return 'Title must be at least 3 characters';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Description
-              Text(
-                'Description',
-                style: AppTextStyles.subtitle,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: _buildInputDecoration(
-                  labelText: 'Product Description',
-                  hintText: 'Describe your product in detail',
-                  prefixIcon: Icons.description,
-                ),
-                maxLines: 4,
-                enabled: !_isUploading,
-                style: AppTextStyles.body,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter description';
-                  }
-                  if (value.trim().length < 10) {
-                    return 'Description must be at least 10 characters';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Price and Stock Row
-              Row(
-                children: [
-                  // Price
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Price',
-                          style: AppTextStyles.subtitle,
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _priceController,
-                          decoration: _buildInputDecoration(
-                            labelText: 'Price',
-                            hintText: '0.00',
-                            prefixIcon: Icons.currency_rupee,
                           ),
-                          keyboardType:
-                              const TextInputType.numberWithOptions(decimal: true),
-                          enabled: !_isUploading,
-                          style: AppTextStyles.body,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Please enter price';
-                            }
-                            final price = double.tryParse(value.trim());
-                            if (price == null || price <= 0) {
-                              return 'Please enter valid price';
-                            }
-                            return null;
-                          },
                         ),
-                      ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  // Stock
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Stock Quantity',
-                          style: AppTextStyles.subtitle,
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _stockController,
-                          decoration: _buildInputDecoration(
-                            labelText: 'Stock',
-                            hintText: '0',
-                            prefixIcon: Icons.inventory,
-                          ),
-                          keyboardType: TextInputType.number,
-                          enabled: !_isUploading,
-                          style: AppTextStyles.body,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Please enter stock';
-                            }
-                            final stock = int.tryParse(value.trim());
-                            if (stock == null || stock < 0) {
-                              return 'Invalid stock';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // ── Title & description ────────────────────────────────────────
+            _sectionCard(
+              title: 'PRODUCT DETAILS',
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    enabled: !_isUploading,
+                    maxLength: 80,
+                    style: GoogleFonts.inter(
+                        fontSize: 15, color: AppColors.textPrimary),
+                    decoration: _inputDeco(
+                      label: 'Product Title',
+                      hint: 'e.g. Handwoven Khadi Scarf',
+                      icon: Icons.title,
+                    ).copyWith(counterText: ''),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Title is required';
+                      }
+                      if (v.trim().length < 3) {
+                        return 'At least 3 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _descriptionController,
+                    enabled: !_isUploading,
+                    maxLines: 4,
+                    maxLength: 500,
+                    style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                        height: 1.5),
+                    decoration: _inputDeco(
+                      label: 'Description',
+                      hint:
+                          'Describe the material, craft technique, dimensions…',
+                      icon: Icons.description_outlined,
                     ),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Description is required';
+                      }
+                      if (v.trim().length < 10) {
+                        return 'At least 10 characters';
+                      }
+                      return null;
+                    },
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 14),
 
-              // Category
-              Text(
-                'Category',
-                style: AppTextStyles.subtitle,
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
-                decoration: InputDecoration(
-                  labelText: 'Select Category',
-                  filled: true,
-                  fillColor: AppColors.primarySurface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.inputBorder,
-                      width: 1.5,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.inputBorder,
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primaryAccent,
-                      width: 2,
-                    ),
-                  ),
-                  prefixIcon: Icon(
-                    Icons.category,
-                    color: AppColors.primaryAccent,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 16,
-                  ),
-                ),
-                items: productCategories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(
-                      category,
-                      style: AppTextStyles.body,
-                    ),
-                  );
-                }).toList(),
-                onChanged: _isUploading
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _selectedCategory = value;
-                        });
-                      },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select a category';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 28),
-
-              // Submit Button
-              ElevatedButton(
-                onPressed: _isUploading ? null : _submitProduct,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: AppColors.primaryAccent,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.softAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
-                child: _isUploading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+            // ── Price, stock, category ─────────────────────────────────────
+            _sectionCard(
+              title: 'PRICING & INVENTORY',
+              child: Column(
+                children: [
+                  // Price + Stock in a row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _priceController,
+                          enabled: !_isUploading,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          style: GoogleFonts.inter(
+                              fontSize: 15, color: AppColors.textPrimary),
+                          decoration: _inputDeco(
+                            label: 'Price',
+                            hint: '0.00',
+                            icon: Icons.currency_rupee,
                           ),
-                        ),
-                      )
-                    : Text(
-                        isEditMode ? 'Update Product' : 'Add Product',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'Required';
+                            }
+                            final p = double.tryParse(v.trim());
+                            if (p == null || p <= 0) return 'Invalid price';
+                            return null;
+                          },
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _stockController,
+                          enabled: !_isUploading,
+                          keyboardType: TextInputType.number,
+                          style: GoogleFonts.inter(
+                              fontSize: 15, color: AppColors.textPrimary),
+                          decoration: _inputDeco(
+                            label: 'Stock',
+                            hint: '0',
+                            icon: Icons.inventory_2_outlined,
+                            suffix: 'units',
+                          ),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'Required';
+                            }
+                            final s = int.tryParse(v.trim());
+                            if (s == null || s < 0) return 'Invalid';
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Category dropdown
+                  DropdownButtonFormField<String>(
+                    value: _selectedCategory,
+                    isExpanded: true,
+                    decoration: _inputDeco(
+                      label: 'Category',
+                      hint: 'Select category',
+                      icon: Icons.category_outlined,
+                    ),
+                    style: GoogleFonts.inter(
+                        fontSize: 14, color: AppColors.textPrimary),
+                    dropdownColor: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(12),
+                    items: productCategories
+                        .map((cat) => DropdownMenuItem(
+                              value: cat,
+                              child: Text(cat,
+                                  style: GoogleFonts.inter(fontSize: 14)),
+                            ))
+                        .toList(),
+                    onChanged: _isUploading
+                        ? null
+                        : (v) => setState(() => _selectedCategory = v),
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'Select a category' : null,
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            ),
+            const SizedBox(height: 80), // space so content clears the FAB
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _imagePlaceholder() {
+    return SizedBox(
+      height: 210,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.add_photo_alternate_outlined,
+              size: 52, color: AppColors.textSecondary.withOpacity(0.5)),
+          const SizedBox(height: 10),
+          Text(
+            'Tap to add a photo',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'JPG or PNG, up to 5 MB',
+            style: GoogleFonts.inter(
+                fontSize: 11, color: AppColors.textSecondary.withOpacity(0.6)),
+          ),
+        ],
       ),
     );
   }

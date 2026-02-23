@@ -501,9 +501,9 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
                   return GridView.builder(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.7,
+                      mainAxisSpacing: 14,
+                      crossAxisSpacing: 14,
+                      childAspectRatio: 0.66,
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, index) {

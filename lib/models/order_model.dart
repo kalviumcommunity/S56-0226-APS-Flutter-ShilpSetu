@@ -20,6 +20,11 @@ class OrderModel {
   static const String statusDelivered = 'delivered';
   static const String statusCancelled = 'cancelled';
 
+  // Valid payment status values
+  static const String paymentStatusPending = 'pending';
+  static const String paymentStatusPaid = 'paid';
+  static const String paymentStatusFailed = 'failed';
+
   OrderModel({
     required this.id,
     required this.buyerId,
@@ -105,6 +110,13 @@ class OrderModel {
   // Helper to check if order is in terminal state
   bool get isTerminal {
     return status == statusDelivered || status == statusCancelled;
+  }
+
+  // True when a COD order has been delivered but cash not yet confirmed
+  bool get isCodPaymentPending {
+    return paymentMethod == 'cod' &&
+        status == statusDelivered &&
+        paymentStatus == paymentStatusPending;
   }
 }
 

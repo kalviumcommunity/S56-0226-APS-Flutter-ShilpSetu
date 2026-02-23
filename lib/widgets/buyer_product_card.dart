@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/product_model.dart';
 import '../core/constants/colors.dart';
-import '../core/constants/text_styles.dart';
 
-/// Final Earthy Artisan Design System - Buyer Product Card
 class BuyerProductCard extends StatefulWidget {
   final ProductModel product;
   final VoidCallback onTap;
@@ -18,8 +17,33 @@ class BuyerProductCard extends StatefulWidget {
   State<BuyerProductCard> createState() => _BuyerProductCardState();
 }
 
-class _BuyerProductCardState extends State<BuyerProductCard> {
+class _BuyerProductCardState extends State<BuyerProductCard>
+    with SingleTickerProviderStateMixin {
   bool _isPressed = false;
+  late final AnimationController _shimmerController;
+
+  bool get _isOutOfStock => widget.product.stock == 0;
+  bool get _isLowStock =>
+      widget.product.stock > 0 && widget.product.stock <= 5;
+  bool get _isNew => DateTime.now()
+          .difference(widget.product.createdAt.toDate())
+          .inDays <=
+      7;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,148 +51,303 @@ class _BuyerProductCardState extends State<BuyerProductCard> {
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
-      onTap: widget.onTap,
+      onTap: _isOutOfStock ? null : widget.onTap,
       child: AnimatedScale(
-        scale: _isPressed ? 0.98 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+        scale: _isPressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Opacity(
+          opacity: _isOutOfStock ? 0.72 : 1.0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.07),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildImageSection(),
+                _buildInfoSection(),
+              ],
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Product Image
-              Flexible(
-                flex: 3,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
+        ),
+      ),
+    );
+  }
+
+  // ─── Image Section ────────────────────────────────────────────────────────
+
+  Widget _buildImageSection() {
+    return Stack(
+      children: [
+        // Image
+        ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          child: SizedBox(
+            height: 158,
+            width: double.infinity,
+            child: Image.network(
+              widget.product.imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+              loadingBuilder: (_, child, progress) {
+                if (progress == null) return child;
+                return _buildShimmer();
+              },
+            ),
+          ),
+        ),
+
+        // Bottom gradient overlay
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: ClipRRect(
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.28),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // NEW badge — top left
+        if (_isNew && !_isOutOfStock)
+          Positioned(
+            top: 8,
+            left: 8,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.mutedForestGreen,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'NEW',
+                style: GoogleFonts.inter(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+          ),
+
+        // OUT OF STOCK overlay
+        if (_isOutOfStock)
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Container(
+                color: Colors.black.withOpacity(0.42),
+                alignment: Alignment.center,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.92),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: Image.network(
-                      widget.product.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: AppColors.secondarySurface,
-                          child: const Center(
-                            child: Icon(
-                              Icons.image_not_supported_outlined,
-                              size: 40,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: AppColors.secondarySurface,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              strokeWidth: 2,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.mutedForestGreen,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                  child: Text(
+                    'OUT OF STOCK',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFB94040),
+                      letterSpacing: 0.8,
                     ),
                   ),
                 ),
               ),
+            ),
+          ),
+      ],
+    );
+  }
 
-              // Product Details
+  Widget _buildShimmer() {
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (_, __) {
+        return Container(
+          height: 158,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              stops: [
+                (_shimmerController.value - 0.3).clamp(0.0, 1.0),
+                _shimmerController.value.clamp(0.0, 1.0),
+                (_shimmerController.value + 0.3).clamp(0.0, 1.0),
+              ],
+              colors: const [
+                Color(0xFFEDE8E0),
+                Color(0xFFF8F4EE),
+                Color(0xFFEDE8E0),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Container(
+      height: 158,
+      color: AppColors.secondarySurface,
+      child: const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          size: 36,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  // ─── Info Section ─────────────────────────────────────────────────────────
+
+  Widget _buildInfoSection() {
+    final bool hasRating = widget.product.reviewCount > 0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Row: Category tag + Star rating
+          Row(
+            children: [
               Flexible(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Category Tag
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightSageTint,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          widget.product.category.toUpperCase(),
-                          style: AppTextStyles.caption.copyWith(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.mutedForestGreen,
-                            letterSpacing: 0.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      // Title
-                      Flexible(
-                        child: Text(
-                          widget.product.title,
-                          style: AppTextStyles.productTitle.copyWith(
-                            color: AppColors.deepCharcoalBrown,
-                            fontSize: 14,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-
-                      // Price
-                      Row(
-                        children: [
-                          const Text(
-                            '₹',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.mutedForestGreen,
-                            ),
-                          ),
-                          Text(
-                            widget.product.price.toStringAsFixed(0),
-                            style: AppTextStyles.price.copyWith(
-                              color: AppColors.mutedForestGreen,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.lightSageTint,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    widget.product.category.toUpperCase(),
+                    style: GoogleFonts.inter(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mutedForestGreen,
+                      letterSpacing: 0.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
+              if (hasRating) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.star_rounded,
+                    size: 13, color: AppColors.mutedGold),
+                const SizedBox(width: 2),
+                Text(
+                  '${widget.product.averageRating.toStringAsFixed(1)} (${widget.product.reviewCount})',
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ],
           ),
-        ),
+          const SizedBox(height: 5),
+
+          // Title
+          Text(
+            widget.product.title,
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: _isOutOfStock
+                  ? AppColors.textSecondary
+                  : AppColors.deepCharcoalBrown,
+              height: 1.3,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+
+          // Seller name
+          Text(
+            'by ${widget.product.sellerName}',
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.w400,
+              color: AppColors.textSecondary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+
+          // Price row
+          Text(
+            '₹${widget.product.price.toStringAsFixed(0)}',
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: _isOutOfStock
+                  ? AppColors.textSecondary
+                  : AppColors.mutedForestGreen,
+            ),
+          ),
+
+          // Low stock warning
+          if (_isLowStock) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.bolt_rounded,
+                    size: 12, color: AppColors.mutedGold),
+                const SizedBox(width: 2),
+                Text(
+                  'Only ${widget.product.stock} left!',
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.mutedGold,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
