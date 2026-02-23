@@ -309,6 +309,48 @@ class OrderService {
     }
   }
 
+  /// Marks a COD order's payment as collected (paid) by the seller.
+  /// Only allowed when:  paymentMethod == 'cod'  AND  paymentStatus == 'pending'  AND  status == 'delivered'
+  Future<void> markCodPaymentCollected(String orderId) async {
+    try {
+      final orderRef = _firestore
+          .collection(FirestoreCollections.orders)
+          .doc(orderId);
+
+      final orderDoc = await orderRef.get();
+      if (!orderDoc.exists) throw Exception('Order not found');
+
+      final data = orderDoc.data()!;
+      final paymentMethod = data['paymentMethod'] ?? '';
+      final paymentStatus = data['paymentStatus'] ?? '';
+      final status = data['status'] ?? '';
+
+      if (paymentMethod != 'cod') {
+        throw Exception('Payment method is not Cash on Delivery');
+      }
+      if (status != OrderModel.statusDelivered) {
+        throw Exception('Order has not been delivered yet');
+      }
+      if (paymentStatus == OrderModel.paymentStatusPaid) {
+        throw Exception('Payment is already marked as collected');
+      }
+
+      await orderRef.update({
+        'paymentStatus': OrderModel.paymentStatusPaid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (kDebugMode) {
+        debugPrint('✅ COD payment marked as collected for order $orderId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Error marking COD payment collected: $e');
+      }
+      rethrow;
+    }
+  }
+
   /// Cancels an order and restores stock using transaction
   /// Can only cancel orders with status: pending or accepted
   /// Throws exception if cancellation is not allowed or fails

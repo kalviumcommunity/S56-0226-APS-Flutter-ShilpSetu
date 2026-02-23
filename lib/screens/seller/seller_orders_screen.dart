@@ -74,6 +74,56 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
     }
   }
 
+  Future<void> _markCodCollected(String orderId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Cash Collection'),
+        content: const Text(
+          'Confirm that you have received the cash payment from the buyer?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not Yet'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Yes, Collected'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _orderService.markCodPaymentCollected(orderId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cash payment marked as collected ✓'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+      _fetchOrders();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _cancelOrder(String orderId) async {
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
@@ -677,6 +727,47 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
         ),
+      );
+    } else if (order.isCodPaymentPending) {
+      // Delivered COD order — cash not yet collected
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.money_off, size: 18, color: AppColors.warning),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Cash payment not yet collected from buyer',
+                  style: TextStyle(
+                      fontSize: 13, color: AppColors.warning),
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _markCodCollected(order.id),
+              icon: const Icon(Icons.payments_outlined),
+              label: const Text('Mark Cash Collected'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
       );
     }
     return const SizedBox.shrink();
