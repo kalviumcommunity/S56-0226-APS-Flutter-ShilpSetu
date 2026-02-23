@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -365,12 +366,27 @@ class _OrderCardState extends State<_OrderCard> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        item.imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: item.imageUrl,
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        placeholder: (_, __) => Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: AppColors.secondarySurface,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(

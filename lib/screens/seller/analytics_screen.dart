@@ -29,8 +29,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   final OrderService _orderService = OrderService();
   TimePeriod _selectedPeriod = TimePeriod.allTime;
 
-  Future<List<OrderModel>> _fetchOrders() async {
-    return await _orderService.getOrdersBySeller(widget.sellerId);
+  // Cached future — prevents a new Firestore request on every setState rebuild.
+  late Future<List<OrderModel>> _ordersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _ordersFuture = _orderService.getOrdersBySeller(widget.sellerId);
+  }
+
+  /// Re-fetches orders and rebuilds the screen.
+  void _refresh() {
+    setState(() {
+      _ordersFuture = _orderService.getOrdersBySeller(widget.sellerId);
+    });
   }
 
   @override
@@ -38,7 +50,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: FutureBuilder<List<OrderModel>>(
-        future: _fetchOrders(),
+        future: _ordersFuture,
         builder: (context, snapshot) {
           // Loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -65,7 +77,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => setState(() {}),
+                    onPressed: _refresh,
                     child: const Text('Retry'),
                   ),
                 ],
@@ -117,9 +129,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           );
 
           return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {});
-            },
+            onRefresh: () async => _refresh(),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),

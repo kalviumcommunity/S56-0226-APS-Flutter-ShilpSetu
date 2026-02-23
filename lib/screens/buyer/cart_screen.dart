@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
@@ -234,19 +235,31 @@ class _CartScreenState extends State<CartScreen> {
                               // Product Image
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  product.imageUrl,
+                              child: CachedNetworkImage(
+                                imageUrl: product.imageUrl,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) => Container(
                                   width: 80,
                                   height: 80,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stack) =>
-                                      Container(
-                                    width: 80,
-                                    height: 80,
-                                    color: Colors.grey[200],
-                                    child: const Icon(Icons.broken_image),
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    ),
                                   ),
                                 ),
+                                errorWidget: (_, __, ___) => Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: Colors.grey[200],
+                                  child: const Icon(Icons.broken_image),
+                                ),
+                              ),
                               ),
                               const SizedBox(width: 12),
 

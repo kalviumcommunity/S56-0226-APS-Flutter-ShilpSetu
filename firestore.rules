@@ -11,10 +11,27 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+
+    // Helper function to check if the authenticated user has a given role
+    function hasRole(role) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    // Helper function to check if authenticated user is an admin
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    // Helper function to check if authenticated user is a seller
+    function isSeller() {
+      return hasRole('seller');
+    }
     
     // Users collection
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isAdmin();
     }
     
     // Products collection
@@ -22,12 +39,28 @@ service cloud.firestore {
       // Anyone authenticated can read products
       allow read: if isAuthenticated();
       
-      // Anyone authenticated can create products
-      allow create: if isAuthenticated();
+      // Only sellers can create products
+      allow create: if isSeller();
       
-      // Only the seller who created the product can update or delete it
-      allow update, delete: if isAuthenticated() && 
-        resource.data.sellerId == request.auth.uid;
+      // Only the seller who created the product can update or delete it; admin can also manage
+      allow update, delete: if isAdmin() ||
+        (isAuthenticated() && resource.data.sellerId == request.auth.uid);
+
+      // Reviews subcollection
+      match /reviews/{reviewId} {
+        // Authenticated users can read reviews
+        allow read: if isAuthenticated();
+
+        // Only buyers can create reviews (one per order enforced in app logic + transaction)
+        allow create: if isAuthenticated() &&
+          request.resource.data.buyerId == request.auth.uid;
+
+        // Only admin can delete reviews (moderation)
+        allow delete: if isAdmin();
+
+        // No updates allowed — reviews are immutable once posted
+        allow update: if false;
+      }
     }
     
     // Orders collection
@@ -37,8 +70,8 @@ service cloud.firestore {
         request.resource.data.buyerId == request.auth.uid;
       
       // Buyers can read their own orders
-      allow read: if isAuthenticated() && 
-        resource.data.buyerId == request.auth.uid;
+      allow read: if isAdmin() ||
+        (isAuthenticated() && resource.data.buyerId == request.auth.uid);
       
       // Sellers can read and update their orders (but not delete)
       allow read, update: if isAuthenticated() && 

@@ -25,7 +25,12 @@ class _SellerDashboardState extends State<SellerDashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
+    // Rebuild when tab changes so the FAB shows/hides correctly.
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final sellerId = context.read<AuthProvider>().currentUser!.uid;
       context.read<ProductProvider>().fetchSellerProducts(sellerId);

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/order_model.dart';
@@ -417,32 +418,25 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        item.imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: item.imageUrl,
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            width: 60,
-                            height: 60,
-                            color: AppColors.secondarySurface,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
-                                valueColor: const AlwaysStoppedAnimation<Color>(
-                                  AppColors.primaryAccent,
-                                ),
+                        placeholder: (_, __) => Container(
+                          width: 60,
+                          height: 60,
+                          color: AppColors.secondarySurface,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primaryAccent,
                               ),
                             ),
-                          );
-                        },
-                        errorBuilder: (context, error, stack) => Container(
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(

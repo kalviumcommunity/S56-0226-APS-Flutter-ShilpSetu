@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -365,17 +366,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               )
                             : isEditMode &&
                                     widget.product!.imageUrl.isNotEmpty
-                                ? Image.network(
-                                    widget.product!.imageUrl,
+                                ? CachedNetworkImage(
+                                    imageUrl: widget.product!.imageUrl,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
+                                    placeholder: (_, __) => const Center(
+                                        child: CircularProgressIndicator()),
+                                    errorWidget: (_, __, ___) =>
                                         _imagePlaceholder(),
-                                    loadingBuilder: (_, child, progress) {
-                                      if (progress == null) return child;
-                                      return const Center(
-                                          child:
-                                              CircularProgressIndicator());
-                                    },
                                   )
                                 : _imagePlaceholder(),
                       ),

@@ -25,7 +25,10 @@ class BuyerDashboard extends StatefulWidget {
 class _BuyerDashboardState extends State<BuyerDashboard> {
   final ProductService _productService = ProductService();
   final TextEditingController _searchController = TextEditingController();
-  
+
+  // Single shared stream — avoids duplicate Firestore listeners
+  late final Stream<List<ProductModel>> _productsStream;
+
   // Filter state
   String searchQuery = '';
   String? selectedCategory;
@@ -33,6 +36,12 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
   double? minPrice;
   double? maxPrice;
   SortOption sortOption = SortOption.newest;
+
+  @override
+  void initState() {
+    super.initState();
+    _productsStream = _productService.getAllActiveProductsStream(limit: 50);
+  }
 
   @override
   void dispose() {
@@ -316,9 +325,9 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
 
             const SizedBox(height: AppSpacing.sm),
 
-            // Filter and Sort Row
+            // Filter and Sort Row — shares the single _productsStream
             StreamBuilder<List<ProductModel>>(
-              stream: _productService.getAllActiveProductsStream(limit: 50),
+              stream: _productsStream,
               builder: (context, snapshot) {
                 final allProducts = snapshot.data ?? [];
                 
@@ -405,7 +414,7 @@ class _BuyerDashboardState extends State<BuyerDashboard> {
             // Content - Real-time product stream with filters
             Expanded(
               child: StreamBuilder<List<ProductModel>>(
-                stream: _productService.getAllActiveProductsStream(limit: 50),
+                stream: _productsStream,
                 builder: (context, snapshot) {
                   // Loading state
                   if (snapshot.connectionState == ConnectionState.waiting) {

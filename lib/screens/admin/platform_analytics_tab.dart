@@ -14,14 +14,26 @@ class PlatformAnalyticsTab extends StatefulWidget {
 class _PlatformAnalyticsTabState extends State<PlatformAnalyticsTab> {
   final AdminService _adminService = AdminService();
 
-  Future<PlatformStats> _fetchStats() async {
-    return await _adminService.getPlatformStats();
+  // Cached future — prevents a new Firestore request on every setState rebuild.
+  late Future<PlatformStats> _statsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _statsFuture = _adminService.getPlatformStats();
+  }
+
+  /// Re-fetches stats and rebuilds the screen.
+  void _refresh() {
+    setState(() {
+      _statsFuture = _adminService.getPlatformStats();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<PlatformStats>(
-      future: _fetchStats(),
+      future: _statsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -37,7 +49,7 @@ class _PlatformAnalyticsTabState extends State<PlatformAnalyticsTab> {
                 const Text('Failed to load analytics'),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => setState(() {}),
+                  onPressed: _refresh,
                   child: const Text('Retry'),
                 ),
               ],
@@ -48,9 +60,7 @@ class _PlatformAnalyticsTabState extends State<PlatformAnalyticsTab> {
         final stats = snapshot.data!;
 
         return RefreshIndicator(
-          onRefresh: () async {
-            setState(() {});
-          },
+          onRefresh: () async => _refresh(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
