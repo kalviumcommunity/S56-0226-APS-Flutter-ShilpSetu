@@ -14,6 +14,8 @@ class UserModel {
   final String? bio;
   final String? profileImageUrl;
   final String? city;
+  final double? locationLat;
+  final double? locationLng;
 
   UserModel({
     required this.uid,
@@ -25,6 +27,8 @@ class UserModel {
     this.bio,
     this.profileImageUrl,
     this.city,
+    this.locationLat,
+    this.locationLng,
   });
 
   /// Convert UserModel to Firestore-compatible map
@@ -39,6 +43,8 @@ class UserModel {
       if (bio != null) 'bio': bio,
       if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
       if (city != null) 'city': city,
+      if (locationLat != null) 'locationLat': locationLat,
+      if (locationLng != null) 'locationLng': locationLng,
     };
   }
 
@@ -68,6 +74,8 @@ class UserModel {
       bio: map['bio'] as String?,
       profileImageUrl: map['profileImageUrl'] as String?,
       city: map['city'] as String?,
+      locationLat: (map['locationLat'] as num?)?.toDouble(),
+      locationLng: (map['locationLng'] as num?)?.toDouble(),
     );
   }
 

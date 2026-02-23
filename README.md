@@ -63,6 +63,7 @@ ShilpSetu provides a lightweight, mobile-first digital storefront that allows ar
 * **Order System**: Complete order placement with cart-to-order conversion
 * **Data Persistence**: Firestore real-time database with offline support
 * **State Management**: Provider pattern for auth, products, and cart
+* **Google Maps Integration**: Seller location pinning and product origin map on buyer product detail
 
 ### 🚀 Planned for Phase 2
 
@@ -202,7 +203,15 @@ class Environment {
   static const String cloudinaryCloudName = 'YOUR_CLOUD_NAME';
   static const String cloudinaryUploadPreset = 'YOUR_UPLOAD_PRESET';
 }
-```tic const String uploadPreset = 'YOUR_UPLOAD_PRESET';
+```
+
+### Step 5: Google Maps API Key (Android)
+
+* Enable **Maps SDK for Android** in Google Cloud Console.
+* Open `android/local.properties` and add:
+
+```properties
+MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
 ```
 
 ---

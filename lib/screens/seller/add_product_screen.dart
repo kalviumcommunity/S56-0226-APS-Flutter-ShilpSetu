@@ -137,6 +137,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final productProvider = Provider.of<ProductProvider>(context, listen: false);
       final currentUser = authProvider.currentUser!;
+      final sellerProfile = authProvider.userModel;
 
       if (isEditMode) {
         // Update existing product
@@ -148,6 +149,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
           price: double.parse(_priceController.text.trim()),
           category: _selectedCategory!,
           stock: int.parse(_stockController.text.trim()),
+          originLat: sellerProfile?.locationLat,
+          originLng: sellerProfile?.locationLng,
+          originCity: sellerProfile?.city,
           imageFile: _selectedImage,
         );
       } else {
@@ -160,6 +164,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
           price: double.parse(_priceController.text.trim()),
           category: _selectedCategory!,
           stock: int.parse(_stockController.text.trim()),
+          originLat: sellerProfile?.locationLat,
+          originLng: sellerProfile?.locationLng,
+          originCity: sellerProfile?.city,
           imageFile: _selectedImage!,
         );
       }

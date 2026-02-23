@@ -112,6 +112,9 @@ class ProductProvider extends ChangeNotifier {
     required double price,
     required String category,
     required int stock,
+    double? originLat,
+    double? originLng,
+    String? originCity,
     required XFile imageFile,
   }) async {
     try {
@@ -123,6 +126,9 @@ class ProductProvider extends ChangeNotifier {
         price: price,
         category: category,
         stock: stock,
+        originLat: originLat,
+        originLng: originLng,
+        originCity: originCity,
         imageFile: imageFile,
       );
 
@@ -152,6 +158,9 @@ class ProductProvider extends ChangeNotifier {
     required double price,
     required String category,
     required int stock,
+    double? originLat,
+    double? originLng,
+    String? originCity,
     XFile? imageFile,
   }) async {
     try {
@@ -162,6 +171,9 @@ class ProductProvider extends ChangeNotifier {
         price: price,
         category: category,
         stock: stock,
+        originLat: originLat,
+        originLng: originLng,
+        originCity: originCity,
         imageFile: imageFile,
       );
 

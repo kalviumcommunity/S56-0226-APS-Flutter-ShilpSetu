@@ -17,6 +17,9 @@ class ProductService {
     required double price,
     required String category,
     required int stock,
+    double? originLat,
+    double? originLng,
+    String? originCity,
     required XFile imageFile,
   }) async {
     try {
@@ -39,6 +42,9 @@ class ProductService {
         'isActive': true,
         'stock': stock,
         'createdAt': Timestamp.now(),
+        if (originLat != null) 'originLat': originLat,
+        if (originLng != null) 'originLng': originLng,
+        if (originCity != null && originCity.isNotEmpty) 'originCity': originCity,
       });
 
       if (kDebugMode) {
@@ -139,6 +145,9 @@ class ProductService {
     required double price,
     required String category,
     required int stock,
+    double? originLat,
+    double? originLng,
+    String? originCity,
     XFile? imageFile,
   }) async {
     try {
@@ -148,6 +157,9 @@ class ProductService {
         'price': price,
         'category': category,
         'stock': stock,
+        'originLat': originLat,
+        'originLng': originLng,
+        'originCity': originCity,
       };
 
       // Upload new image if provided
