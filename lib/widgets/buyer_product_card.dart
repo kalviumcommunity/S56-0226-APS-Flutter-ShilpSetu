@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/product_model.dart';
@@ -77,10 +78,10 @@ class _BuyerProductCardState extends State<BuyerProductCard>
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: MainAxisSize.max,
               children: [
                 _buildImageSection(),
-                _buildInfoSection(),
+                Flexible(child: _buildInfoSection()),
               ],
             ),
           ),
@@ -100,14 +101,11 @@ class _BuyerProductCardState extends State<BuyerProductCard>
           child: SizedBox(
             height: 158,
             width: double.infinity,
-            child: Image.network(
-              widget.product.imageUrl,
+            child: CachedNetworkImage(
+              imageUrl: widget.product.imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-              loadingBuilder: (_, child, progress) {
-                if (progress == null) return child;
-                return _buildShimmer();
-              },
+              placeholder: (_, __) => _buildShimmer(),
+              errorWidget: (_, __, ___) => _buildImagePlaceholder(),
             ),
           ),
         ),
@@ -240,10 +238,10 @@ class _BuyerProductCardState extends State<BuyerProductCard>
     final bool hasRating = widget.product.reviewCount > 0;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         children: [
           // Row: Category tag + Star rating
           Row(
@@ -285,21 +283,23 @@ class _BuyerProductCardState extends State<BuyerProductCard>
               ],
             ],
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
 
-          // Title
-          Text(
-            widget.product.title,
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: _isOutOfStock
-                  ? AppColors.textSecondary
-                  : AppColors.deepCharcoalBrown,
-              height: 1.3,
+          // Title — Expanded so it absorbs leftover space and never overflows
+          Expanded(
+            child: Text(
+              widget.product.title,
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: _isOutOfStock
+                    ? AppColors.textSecondary
+                    : AppColors.deepCharcoalBrown,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
 
@@ -314,7 +314,7 @@ class _BuyerProductCardState extends State<BuyerProductCard>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
 
           // Price row
           Text(
@@ -330,7 +330,7 @@ class _BuyerProductCardState extends State<BuyerProductCard>
 
           // Low stock warning
           if (_isLowStock) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Row(
               children: [
                 const Icon(Icons.bolt_rounded,

@@ -7,9 +7,13 @@ import '../models/order_model.dart';
 class OrderService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Creates multiple orders from cart items, grouped by seller
-  /// Returns list of created orderIds
-  /// Throws exception on error
+  /// Creates multiple orders from cart items, grouped by seller.
+  ///
+  /// Stock validation, stock deduction, and order document creation all happen
+  /// inside a **single Firestore transaction**. Either every operation succeeds
+  /// or the entire transaction is rolled back — no orphaned stock deductions.
+  ///
+  /// Returns the list of created order IDs.
   Future<List<String>> createOrders({
     required String buyerId,
     required List<CartItem> cartItems,
@@ -22,155 +26,139 @@ class OrderService {
         throw Exception('Cart is empty');
       }
 
-      // Step 1: Validate and deduct stock using transaction
-      await _validateAndDeductStock(cartItems);
-
-      // Step 2: Group cart items by sellerId
+      // Group cart items by sellerId before entering the transaction so
+      // we can pre-compute order document references (needed for their IDs).
       final Map<String, List<CartItem>> itemsBySeller = {};
       for (final cartItem in cartItems) {
-        final sellerId = cartItem.product.sellerId;
-        if (!itemsBySeller.containsKey(sellerId)) {
-          itemsBySeller[sellerId] = [];
-        }
-        itemsBySeller[sellerId]!.add(cartItem);
+        itemsBySeller
+            .putIfAbsent(cartItem.product.sellerId, () => [])
+            .add(cartItem);
       }
 
-      // Step 3: Create one order per seller
-      final List<String> orderIds = [];
-      
-      for (final entry in itemsBySeller.entries) {
-        final sellerId = entry.key;
-        final sellerItems = entry.value;
+      // Pre-generate one DocumentReference per seller-group so we know the
+      // order IDs before the transaction begins (required for the return value).
+      final Map<String, DocumentReference> orderRefsBySeller = {
+        for (final sellerId in itemsBySeller.keys)
+          sellerId: _firestore.collection(FirestoreCollections.orders).doc(),
+      };
 
-        // Build items list with necessary fields (snapshot approach)
-        final items = sellerItems.map((cartItem) {
-          return {
-            'productId': cartItem.product.id,
-            'title': cartItem.product.title,
-            'price': cartItem.product.price,
-            'quantity': cartItem.quantity,
-            'imageUrl': cartItem.product.imageUrl,
+      // ── Single atomic transaction ──────────────────────────────────────────
+      await _firestore.runTransaction((transaction) async {
+        // ── READ PHASE ────────────────────────────────────────────────────────
+        // Fetch every product document first. All reads must come before writes.
+        final Map<String, DocumentSnapshot> productDocs = {};
+        for (final cartItem in cartItems) {
+          final productRef = _firestore
+              .collection(FirestoreCollections.products)
+              .doc(cartItem.product.id);
+          final productDoc = await transaction.get(productRef);
+
+          if (!productDoc.exists) {
+            throw Exception(
+                'Product "${cartItem.product.title}" no longer exists');
+          }
+          productDocs[cartItem.product.id] = productDoc;
+        }
+
+        // ── VALIDATION ────────────────────────────────────────────────────────
+        final List<String> insufficientStockProducts = [];
+
+        for (final cartItem in cartItems) {
+          final data =
+              productDocs[cartItem.product.id]!.data() as Map<String, dynamic>?;
+          final currentStock = (data?['stock'] as num?)?.toInt() ?? 0;
+          final isActive = data?['isActive'] as bool? ?? false;
+
+          if (!isActive) {
+            throw Exception(
+                'Product "${cartItem.product.title}" is no longer available');
+          }
+
+          if (currentStock < cartItem.quantity) {
+            insufficientStockProducts.add(
+              '${cartItem.product.title} '
+              '(Available: $currentStock, Requested: ${cartItem.quantity})',
+            );
+          }
+        }
+
+        if (insufficientStockProducts.isNotEmpty) {
+          throw Exception(
+            'Insufficient stock for:\n${insufficientStockProducts.join('\n')}',
+          );
+        }
+
+        // ── WRITE PHASE ───────────────────────────────────────────────────────
+        // 1. Deduct stock for every product
+        for (final cartItem in cartItems) {
+          final productRef = _firestore
+              .collection(FirestoreCollections.products)
+              .doc(cartItem.product.id);
+          final data =
+              productDocs[cartItem.product.id]!.data() as Map<String, dynamic>?;
+          final currentStock = (data?['stock'] as num?)?.toInt() ?? 0;
+          final newStock = currentStock - cartItem.quantity;
+
+          transaction.update(productRef, {'stock': newStock});
+
+          if (kDebugMode) {
+            debugPrint(
+              '📦 Stock deducted for ${cartItem.product.title}: '
+              '$currentStock → $newStock',
+            );
+          }
+        }
+
+        // 2. Create one order document per seller-group
+        for (final entry in itemsBySeller.entries) {
+          final sellerId = entry.key;
+          final sellerItems = entry.value;
+
+          final items = sellerItems
+              .map((cartItem) => {
+                    'productId': cartItem.product.id,
+                    'title': cartItem.product.title,
+                    'price': cartItem.product.price,
+                    'quantity': cartItem.quantity,
+                    'imageUrl': cartItem.product.imageUrl,
+                  })
+              .toList();
+
+          final totalAmount = sellerItems.fold<double>(
+            0.0,
+            (sum, item) => sum + item.totalPrice,
+          );
+
+          final orderData = {
+            'buyerId': buyerId,
+            'sellerId': sellerId,
+            'items': items,
+            'totalAmount': totalAmount,
+            'status': 'pending',
+            'createdAt': FieldValue.serverTimestamp(),
+            'shippingAddress': shippingAddress,
+            'paymentMethod': paymentMethod,
+            'paymentStatus': paymentStatus,
           };
-        }).toList();
 
-        // Calculate total amount for this seller's items
-        final totalAmount = sellerItems.fold<double>(
-          0.0,
-          (sum, item) => sum + item.totalPrice,
-        );
-
-        // Build order document
-        final orderData = {
-          'buyerId': buyerId,
-          'sellerId': sellerId,
-          'items': items,
-          'totalAmount': totalAmount,
-          'status': 'pending',
-          'createdAt': FieldValue.serverTimestamp(),
-          'shippingAddress': shippingAddress,
-          'paymentMethod': paymentMethod,
-          'paymentStatus': paymentStatus,
-        };
-
-        // Create order in Firestore
-        final orderRef = await _firestore
-            .collection(FirestoreCollections.orders)
-            .add(orderData);
-
-        orderIds.add(orderRef.id);
-
-        if (kDebugMode) {
-          debugPrint('✅ Order created: ${orderRef.id}');
+          transaction.set(orderRefsBySeller[sellerId]!, orderData);
         }
-      }
+      });
+      // ── End transaction ────────────────────────────────────────────────────
+
+      final orderIds = orderRefsBySeller.values.map((ref) => ref.id).toList();
 
       if (kDebugMode) {
-        debugPrint('✅ Created ${orderIds.length} orders successfully');
+        debugPrint('✅ Created ${orderIds.length} orders atomically');
+        for (final id in orderIds) {
+          debugPrint('   Order: $id');
+        }
       }
 
       return orderIds;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('❌ Error creating orders: $e');
-      }
-      rethrow;
-    }
-  }
-
-  /// Validates stock availability and deducts stock using Firestore transaction
-  /// Throws exception if any product has insufficient stock
-  Future<void> _validateAndDeductStock(List<CartItem> cartItems) async {
-    try {
-      await _firestore.runTransaction((transaction) async {
-        // Step 1: Read all product documents
-        final Map<String, DocumentSnapshot> productDocs = {};
-        
-        for (final cartItem in cartItems) {
-          final productRef = _firestore
-              .collection(FirestoreCollections.products)
-              .doc(cartItem.product.id);
-          
-          final productDoc = await transaction.get(productRef);
-          
-          if (!productDoc.exists) {
-            throw Exception('Product "${cartItem.product.title}" no longer exists');
-          }
-          
-          productDocs[cartItem.product.id] = productDoc;
-        }
-
-        // Step 2: Validate stock for all products
-        final List<String> insufficientStockProducts = [];
-        
-        for (final cartItem in cartItems) {
-          final productDoc = productDocs[cartItem.product.id]!;
-          final data = productDoc.data() as Map<String, dynamic>?;
-          final currentStock = data?['stock'] ?? 0;
-          final isActive = data?['isActive'] ?? false;
-          
-          if (!isActive) {
-            throw Exception('Product "${cartItem.product.title}" is no longer available');
-          }
-          
-          if (currentStock < cartItem.quantity) {
-            insufficientStockProducts.add(
-              '${cartItem.product.title} (Available: $currentStock, Requested: ${cartItem.quantity})'
-            );
-          }
-        }
-
-        // If any product has insufficient stock, throw exception
-        if (insufficientStockProducts.isNotEmpty) {
-          throw Exception(
-            'Insufficient stock for:\n${insufficientStockProducts.join('\n')}'
-          );
-        }
-
-        // Step 3: Deduct stock for all products
-        for (final cartItem in cartItems) {
-          final productRef = _firestore
-              .collection(FirestoreCollections.products)
-              .doc(cartItem.product.id);
-          
-          final productDoc = productDocs[cartItem.product.id]!;
-          final data = productDoc.data() as Map<String, dynamic>?;
-          final currentStock = data?['stock'] ?? 0;
-          final newStock = currentStock - cartItem.quantity;
-          
-          transaction.update(productRef, {'stock': newStock});
-          
-          if (kDebugMode) {
-            debugPrint('✅ Stock deducted for ${cartItem.product.title}: $currentStock → $newStock');
-          }
-        }
-      });
-      
-      if (kDebugMode) {
-        debugPrint('✅ Stock validation and deduction completed successfully');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ Stock validation/deduction failed: $e');
       }
       rethrow;
     }

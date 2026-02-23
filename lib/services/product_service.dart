@@ -48,11 +48,11 @@ class ProductService {
       });
 
       if (kDebugMode) {
-        print('✅ Product added successfully with ID: $productId');
+        debugPrint('✅ Product added successfully with ID: $productId');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error adding product: $e');
+        debugPrint('❌ Error adding product: $e');
       }
       throw Exception('Failed to add product: $e');
     }
@@ -71,7 +71,7 @@ class ProductService {
       }).toList();
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error fetching seller products: $e');
+        debugPrint('❌ Error fetching seller products: $e');
       }
       throw Exception('Failed to fetch products: $e');
     }
@@ -96,7 +96,7 @@ class ProductService {
       return snapshot.docs.map((doc) => ProductModel.fromMap(doc.data(), doc.id)).toList();
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error fetching active products: $e');
+        debugPrint('❌ Error fetching active products: $e');
       }
       throw Exception('Unable to load products. Please try again.');
     }
@@ -118,7 +118,7 @@ class ProductService {
       });
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error creating products stream: $e');
+        debugPrint('❌ Error creating products stream: $e');
       }
       rethrow;
     }
@@ -128,11 +128,11 @@ class ProductService {
     try {
       await _firestore.collection(FirestoreCollections.products).doc(productId).delete();
       if (kDebugMode) {
-        print('✅ Product deleted successfully: $productId');
+        debugPrint('✅ Product deleted successfully: $productId');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error deleting product: $e');
+        debugPrint('❌ Error deleting product: $e');
       }
       throw Exception('Failed to delete product: $e');
     }
@@ -170,11 +170,11 @@ class ProductService {
 
       await _firestore.collection(FirestoreCollections.products).doc(productId).update(updateData);
       if (kDebugMode) {
-        print('✅ Product updated successfully: $productId');
+        debugPrint('✅ Product updated successfully: $productId');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error updating product: $e');
+        debugPrint('❌ Error updating product: $e');
       }
       throw Exception('Failed to update product: $e');
     }

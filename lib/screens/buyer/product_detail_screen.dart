@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -67,12 +68,17 @@ class ProductDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  product.imageUrl,
+                child: CachedNetworkImage(
+                  imageUrl: product.imageUrl,
                   width: double.infinity,
                   height: 300,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  placeholder: (_, __) => Container(
+                    height: 300,
+                    color: AppColors.secondarySurface,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
                     height: 300,
                     decoration: BoxDecoration(
                       color: AppColors.secondarySurface,

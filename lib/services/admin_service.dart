@@ -231,18 +231,72 @@ class AdminService {
     }
   }
 
-  /// Deletes a review
+  /// Deletes a review and atomically recalculates the product's rating stats.
+  ///
+  /// Uses a transaction to ensure [averageRating] and [reviewCount] on the
+  /// product document remain consistent after moderation.
   Future<void> deleteReview(String productId, String reviewId) async {
     try {
-      await _firestore
-          .collection(FirestoreCollections.products)
-          .doc(productId)
-          .collection('reviews')
-          .doc(reviewId)
-          .delete();
+      await _firestore.runTransaction((transaction) async {
+        final productRef = _firestore
+            .collection(FirestoreCollections.products)
+            .doc(productId);
+
+        final reviewRef = productRef.collection('reviews').doc(reviewId);
+
+        // READ PHASE — must precede all writes in a transaction
+        final productDoc = await transaction.get(productRef);
+        final reviewDoc = await transaction.get(reviewRef);
+
+        if (!reviewDoc.exists) {
+          throw Exception('Review not found');
+        }
+
+        if (!productDoc.exists) {
+          throw Exception('Product not found');
+        }
+
+        final reviewData = reviewDoc.data() as Map<String, dynamic>;
+        final deletedRating = (reviewData['rating'] as num?)?.toInt() ?? 0;
+
+        final productData = productDoc.data() as Map<String, dynamic>;
+        final currentAvgRating =
+            (productData['averageRating'] as num?)?.toDouble() ?? 0.0;
+        final currentReviewCount =
+            (productData['reviewCount'] as num?)?.toInt() ?? 0;
+
+        // WRITE PHASE
+        transaction.delete(reviewRef);
+
+        if (currentReviewCount <= 1) {
+          // Deleting the only review — reset stats to zero
+          transaction.update(productRef, {
+            'averageRating': 0.0,
+            'reviewCount': 0,
+          });
+        } else {
+          // Recalculate average excluding the deleted rating
+          final newReviewCount = currentReviewCount - 1;
+          final newAvgRating =
+              ((currentAvgRating * currentReviewCount) - deletedRating) /
+                  newReviewCount;
+
+          transaction.update(productRef, {
+            'averageRating': newAvgRating,
+            'reviewCount': newReviewCount,
+          });
+
+          if (kDebugMode) {
+            debugPrint(
+              '📊 Rating recalculated: $currentAvgRating ($currentReviewCount reviews) '
+              '→ ${newAvgRating.toStringAsFixed(2)} ($newReviewCount reviews)',
+            );
+          }
+        }
+      });
 
       if (kDebugMode) {
-        debugPrint('✅ Review $reviewId deleted from product $productId');
+        debugPrint('✅ Review $reviewId deleted and product stats updated');
       }
     } catch (e) {
       if (kDebugMode) {

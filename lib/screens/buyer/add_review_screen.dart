@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../models/product_model.dart';
 import '../../services/review_service.dart';
@@ -118,12 +119,24 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        widget.product.imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: widget.product.imageUrl,
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stack) => Container(
+                        placeholder: (_, __) => Container(
+                          width: 60,
+                          height: 60,
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
                           width: 60,
                           height: 60,
                           color: Colors.grey[200],
