@@ -29,28 +29,35 @@ class AuthProvider extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      // Graceful fallback
-      if (_auth.currentUser != null) {
-        _userModel = UserModel(
-          uid: _auth.currentUser!.uid,
-          email: _auth.currentUser!.email ?? '',
-          name: 'User',
-          role: 'buyer',
-          createdAt: DateTime.now(),
-        );
-        notifyListeners();
-      }
-
       if (kDebugMode) {
-        debugPrint('Error fetching user data');
+        debugPrint('Error fetching user data: $e');
       }
+      // Do NOT construct a fallback UserModel — doing so would give disabled
+      // users a dummy model with isActive:true and bypass the disable check.
+      // Rethrow so the caller (login / refreshUserData) can handle it.
+      rethrow;
     }
   }
 
-  /// Refreshes current user data from Firestore
+  /// Refreshes current user data from Firestore.
+  /// Also enforces the isActive flag — signs out if the account was disabled
+  /// while the session was still alive.
   Future<void> refreshUserData() async {
-    if (_auth.currentUser != null) {
+    if (_auth.currentUser == null) return;
+    try {
       await fetchUserData(_auth.currentUser!.uid);
+      if (_userModel != null && !_userModel!.isActive) {
+        await _auth.signOut();
+        _userModel = null;
+        notifyListeners();
+        throw FirebaseAuthException(
+          code: 'user-disabled',
+          message: 'This account has been disabled. Please contact support.',
+        );
+      }
+    } catch (e) {
+      // Propagate so callers (e.g. dashboards) can redirect to login.
+      rethrow;
     }
   }
 
@@ -68,6 +75,17 @@ class AuthProvider extends ChangeNotifier {
 
       if (credential.user != null) {
         await fetchUserData(credential.user!.uid);
+
+        // Block disabled users — isActive is our Firestore-level disable flag
+        if (_userModel != null && !_userModel!.isActive) {
+          await _auth.signOut();
+          _userModel = null;
+          notifyListeners();
+          throw FirebaseAuthException(
+            code: 'user-disabled',
+            message: 'This account has been disabled. Please contact support.',
+          );
+        }
       }
 
       return credential.user;

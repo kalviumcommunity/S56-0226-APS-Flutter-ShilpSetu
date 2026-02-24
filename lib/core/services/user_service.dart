@@ -33,6 +33,7 @@ class UserService {
         'name': name,
         'role': role.toLowerCase(),
         'createdAt': FieldValue.serverTimestamp(),
+        'isActive': true, // Always written at signup — admin toggle updates this field
       }).timeout(const Duration(seconds: 10));
     } catch (e) {
       // Throw generic message without exposing internal details

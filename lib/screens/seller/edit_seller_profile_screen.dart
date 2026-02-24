@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../services/seller_service.dart';
@@ -116,6 +116,13 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
           ),
         );
         Navigator.of(context).pop();
+      }
+    } on FirebaseAuthException catch (e) {
+      // refreshUserData() throws user-disabled if the account was disabled
+      // while this session was alive — redirect to login immediately.
+      if (e.code == 'user-disabled' && mounted) {
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/login', (_) => false);
       }
     } catch (e) {
       if (mounted) {
